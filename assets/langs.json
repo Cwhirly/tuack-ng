@@ -15,6 +15,14 @@
             "run": "{executable} -o {output_path}/{program_name}{exe_suffix} {args} {input_path}"
         }
     },
+    "pas": {
+        "language": "Pascal",
+        "compiler": {
+            "executable": "fpc",
+            "check": "{executable} --version",
+            "run": "{executable} -o{output_path}/{program_name}{exe_suffix} {args} {input_path}/{program_name}.pas"
+        }
+    },
     "rs": {
         "language": "Rust",
         "compiler": {
