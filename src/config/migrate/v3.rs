@@ -26,8 +26,8 @@ struct SingleDataItem {
     #[serde(skip_serializing_if = "Option::is_none", default)]
     pub output: Option<String>,
     /// 参数，会从全局参数继承
-    #[serde(default, skip_serializing_if = "HashMap::is_empty")]
-    pub args: HashMap<String, i64>,
+    #[serde(default, skip_serializing_if = "IndexMap::is_empty")]
+    pub args: IndexMap<String, i64>,
     /// 是否为人工生成的测试点（旧格式，仅反序列化）
     #[serde(default, skip_serializing)]
     pub manual: Option<bool>,
@@ -46,8 +46,8 @@ struct BundleDataItem {
     #[serde(default)]
     pub subtask: u32,
     /// 参数，会从全局参数继承
-    #[serde(default, skip_serializing_if = "HashMap::is_empty")]
-    pub args: HashMap<String, i64>,
+    #[serde(default, skip_serializing_if = "IndexMap::is_empty")]
+    pub args: IndexMap<String, i64>,
     /// 是否为人工生成的测试点（旧格式，仅反序列化）
     #[serde(default, skip_serializing)]
     pub manual: Option<bool>,
@@ -67,8 +67,8 @@ struct SampleItem {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub output: Option<String>,
     /// 参数，会从全局参数继承
-    #[serde(default, skip_serializing_if = "HashMap::is_empty")]
-    pub args: HashMap<String, i64>,
+    #[serde(default, skip_serializing_if = "IndexMap::is_empty")]
+    pub args: IndexMap<String, i64>,
     /// 是否为人工生成的测试点（旧格式，仅反序列化）
     #[serde(default, skip_serializing)]
     pub manual: Option<bool>,

@@ -11,15 +11,15 @@ pub struct CppChecker {
     compile_args: String,
     program_name: String,
     binary_path: Option<PathBuf>,
-    dependencies: HashMap<String, Vec<u8>>,
+    dependencies: IndexMap<String, Vec<u8>>,
 }
 
 impl CppChecker {
     pub fn new(
         source: impl Into<PathBuf>,
-        compile_args: &HashMap<String, String>,
+        compile_args: &IndexMap<String, String>,
         program_name: impl Into<String>,
-        dependencies: HashMap<String, Vec<u8>>,
+        dependencies: IndexMap<String, Vec<u8>>,
     ) -> Result<Self> {
         let source = source.into();
         let program_name = program_name.into();

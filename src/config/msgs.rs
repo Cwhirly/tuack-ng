@@ -150,7 +150,7 @@ pub struct LoadContext {
     current_path: Vec<usize>,
     pub migrated: bool,
     force_migrate: bool,
-    pub migrated_notices: HashMap<i32, &'static str>,
+    pub migrated_notices: IndexMap<i32, &'static str>,
 }
 
 impl LoadContext {
@@ -168,7 +168,7 @@ impl LoadContext {
             current_path: Vec::new(),
             migrated: false,
             force_migrate: false,
-            migrated_notices: HashMap::new(),
+            migrated_notices: IndexMap::new(),
         }
     }
 

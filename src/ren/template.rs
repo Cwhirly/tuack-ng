@@ -163,7 +163,7 @@ pub fn render_template(
     // 创建环境
     let env = Environment::new();
 
-    let sample = HashMap::from([
+    let sample = IndexMap::from([
         (
             "text",
             Value::from_function({
@@ -185,7 +185,7 @@ pub fn render_template(
         ),
     ]);
 
-    let tools = HashMap::from([
+    let tools = IndexMap::from([
         (
             "int_lg",
             Value::from_function({
@@ -233,7 +233,7 @@ pub fn render_template(
         ),
     ]);
 
-    let statement = HashMap::from([
+    let statement = IndexMap::from([
         (
             "input_file",
             Value::from_function({

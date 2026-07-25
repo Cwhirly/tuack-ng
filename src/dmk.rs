@@ -296,7 +296,7 @@ pub async fn main(args: DmkArgs) -> Result<()> {
 
     let gen_path = resolve(&generator_config.source);
 
-    let mut deps: HashMap<String, Vec<u8>> = HashMap::new();
+    let mut deps: IndexMap<String, Vec<u8>> = IndexMap::new();
     for dep_path in &generator_config.deps {
         let abs = resolve(dep_path);
         let content =

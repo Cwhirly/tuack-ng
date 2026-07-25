@@ -23,7 +23,7 @@ pub struct Context {
 
     pub config: Option<Config>,
     pub loadctx: LoadContext,
-    pub languages: HashMap<String, Language>,
+    pub languages: IndexMap<String, Language>,
 }
 
 pub static GLOBAL_CONTEXT: OnceLock<Context> = OnceLock::new();

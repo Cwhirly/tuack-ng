@@ -18,11 +18,11 @@ pub trait Migrater: Send + Sync {
     fn migrate_problem(&self, config: serde_json::Value, dir: &Path) -> Result<serde_json::Value>;
 }
 
-use std::collections::HashMap;
+use indexmap::IndexMap;
 use std::sync::LazyLock;
 
-pub static MIGRATERS: LazyLock<HashMap<i32, Box<dyn Migrater>>> = LazyLock::new(|| {
-    let mut map = HashMap::<i32, Box<dyn Migrater>>::new();
+pub static MIGRATERS: LazyLock<IndexMap<i32, Box<dyn Migrater>>> = LazyLock::new(|| {
+    let mut map = IndexMap::<i32, Box<dyn Migrater>>::new();
     map.insert(3, Box::new(crate::config::migrate::v3::V3Migrater));
     map.insert(4, Box::new(crate::config::migrate::v4::V4Migrater));
     map.insert(5, Box::new(crate::config::migrate::v5::V5Migrater));

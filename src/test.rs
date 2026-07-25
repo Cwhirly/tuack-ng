@@ -293,7 +293,7 @@ pub async fn test_problem(
                 return Ok(());
             }
 
-            let mut deps: HashMap<String, Vec<u8>> = HashMap::new();
+            let mut deps: IndexMap<String, Vec<u8>> = IndexMap::new();
             for dep_path in &chk_config.deps {
                 let abs = resolve(dep_path);
                 let content = match fs::read(&abs) {
@@ -319,7 +319,7 @@ pub async fn test_problem(
             compile_pb.enable_steady_tick(Duration::from_millis(100));
             compile_pb.set_message(format!("编译 {} 题目的 Checker", problem_config.name));
 
-            let mut cpp_checker = match CppChecker::new(&source_path, &HashMap::new(), "chk", deps)
+            let mut cpp_checker = match CppChecker::new(&source_path, &IndexMap::new(), "chk", deps)
             {
                 Ok(c) => c,
                 Err(e) => {
@@ -476,8 +476,8 @@ pub async fn test_problem(
 
         let mut total_score: u32 = 0;
 
-        let mut subtask_scores: HashMap<u32, Vec<u32>> = if is_sample {
-            HashMap::from([(0, vec![])])
+        let mut subtask_scores: IndexMap<u32, Vec<u32>> = if is_sample {
+            IndexMap::from([(0, vec![])])
         } else {
             problem_config
                 .subtasks
