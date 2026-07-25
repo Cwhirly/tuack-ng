@@ -12,7 +12,7 @@ pub struct ContestDayConfigFile {
     pub name: String,
     pub subdir: Vec<String>,
     pub title: String,
-    pub compile: HashMap<String, String>,
+    pub compile: IndexMap<String, String>,
     #[serde(rename = "start time")]
     pub start_time: Option<[u32; 6]>,
     #[serde(rename = "end time")]
@@ -50,7 +50,7 @@ pub struct ContestDayConfig {
     pub name: String,
     pub subdir: Vec<String>,
     pub title: String,
-    pub compile: HashMap<String, String>,
+    pub compile: IndexMap<String, String>,
     pub start_time: Option<[u32; 6]>,
     pub end_time: Option<[u32; 6]>,
     pub use_pretest: Option<bool>,
@@ -73,7 +73,7 @@ pub fn load_day_config(ctx: &mut LoadContext, dayconfig_path: &Path) -> Result<C
 
     // 检查版本
     if version < CONFIG_MIN_VERSION {
-        bail!("配置文件版本过低，可能是 tuack 的配置文件。请迁移到 tuack-ng 配置文件格式再使用。");
+        bail!("配置文件版本过低，可能是 Tuack 的配置文件。请迁移到 Tuack-NG 配置文件格式再使用。");
     }
 
     if version > CONFIG_VERSION {

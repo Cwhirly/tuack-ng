@@ -26,7 +26,7 @@ pub struct GeneralRunner {
 impl GeneralRunner {
     pub fn new(
         source: impl Into<PathBuf>,
-        compile_args: &HashMap<String, String>,
+        compile_args: &IndexMap<String, String>,
         program_name: impl Into<String>,
     ) -> Result<Self> {
         let source = source.into();
