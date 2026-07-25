@@ -187,6 +187,14 @@ pub fn render_template(
 
     let tools = HashMap::from([
         (
+            "int_lg",
+            Value::from_function({
+                move |num: f64| -> Result<String, minijinja::Error> {
+                    Ok(tools::int_lg(num).to_string())
+                }
+            }),
+        ),
+        (
             "hn",
             Value::from_function({
                 move |num: f64, style: Option<&str>| -> Result<String, minijinja::Error> {
