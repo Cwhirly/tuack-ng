@@ -135,7 +135,7 @@ Tuack-NG（`Tuack New Generation`）是一套完整的用于辅助 OI/ACM 竞赛
 
 <!-- 要在本地编译应用，请参考文档 [配置 Tuack-NG 本体开发环境](https://docs.tuack-ng.ink/dev/get-started/devlopment.html)。 -->
 
-如果您有意愿为 Tuack-NG 做出代码贡献，请先阅读 [贡献指南](CONTRIBUTING.md) 没写 来了解如何为 Tuack-NG 做代码贡献。我们欢迎想要为本应用实现新功能或进行改进的同学提交 [Pull Request](https://github.com/tuack-ng/tuack-ng/pulls)。
+如果您有意愿为 Tuack-NG 做出代码贡献，请先阅读 [贡献指南](CONTRIBUTING.md) 来了解如何为 Tuack-NG 做代码贡献。我们欢迎想要为本应用实现新功能或进行改进的同学提交 [Pull Request](https://github.com/tuack-ng/tuack-ng/pulls)。
 
 您可以参考 [DeepWiki](https://deepwiki.com/tuack-ng/tuack-ng) 来了解项目结构。 [![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/tuack-ng/tuack-ng)
 
