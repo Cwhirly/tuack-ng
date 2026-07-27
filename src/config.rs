@@ -16,6 +16,7 @@ pub mod msgs;
 pub mod problem;
 
 use crate::context::CurrentLocation;
+use owo_colors::OwoColorize;
 
 pub use self::contest::*;
 pub use self::contestday::*;
@@ -130,11 +131,7 @@ pub fn load_config(ctx: &mut LoadContext, path: &Path) -> Result<Option<Config>>
                             ctx.ret(); // problem
                         }
                         Err(e) => {
-                            ctx.emit_error(format!(
-                                "题目 {} 加载失败：{}",
-                                problem_name.cyan(),
-                                e
-                            ));
+                            ctx.emit_error(format!("题目 {} 加载失败：{}", problem_name.cyan(), e));
                         }
                     }
                 }

@@ -11,9 +11,9 @@ use log4rs::{
 use crate::config::msgs::LoadContext;
 use crate::{config::load_config, context};
 use chrono::Local;
-use colored::Colorize;
 use indicatif::MultiProgress;
 use indicatif_log_bridge::LogWrapper;
+use owo_colors::OwoColorize;
 use std::panic::{self, PanicHookInfo};
 
 #[cfg(debug_assertions)]
@@ -55,7 +55,7 @@ fn custom_panic_handler(panic_info: &PanicHookInfo, verbose: bool) {
     } else {
         panic_log!("无法获取 Panic 信息");
     }
-    panic_log!("详见：https://docs.tuack-ng.ink/contributing/panic.html");
+    panic_log!("详见：https://docs.tuack-ng.ink/app/faq/panic.html");
 }
 
 fn init_log(verbose: &bool) -> Result<MultiProgress> {
@@ -159,7 +159,7 @@ fn init_context(multi: MultiProgress, migrating: bool, validating: bool) -> Resu
                     }
                     if err_count > 0 {
                         msg_error!("配置文件中发现了 {} 个错误：", err_count);
-                        emsg!("{}", ctx.render_errors_tree());
+                        msg!("{}", ctx.render_errors_tree());
                     }
                 }
             }

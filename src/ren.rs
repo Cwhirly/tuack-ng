@@ -15,13 +15,13 @@ use crate::ren::unwrap::unwrap_template;
 use crate::tuack_lib::ren::base::Checker;
 use crate::tuack_lib::ren::base::Compiler;
 use clap::Args;
-use colored::Colorize;
 use indexmap::IndexMap;
 use manifest::TargetType;
 use manifest::TemplateManifest;
 use markdown_ppp::ast::Document;
 use markdown_ppp::parser::*;
 use opener::open;
+use owo_colors::OwoColorize;
 use std::time::Duration;
 
 use template::render_template;

@@ -1,6 +1,5 @@
 #![allow(unused)]
 use crate::prelude::*;
-use colored::ColoredString;
 use debug_tree::{TreeBuilder, TreeConfig, TreeSymbols};
 
 #[derive(Clone, Debug, Copy)]
@@ -13,12 +12,12 @@ pub enum LoadMessageLevel {
 #[derive(Clone, Debug)]
 pub struct LoadMessage {
     pub level: LoadMessageLevel,
-    pub message: ColoredString,
+    pub message: String,
 }
 
 impl LoadMessage {
     // 创建警告消息
-    pub fn warn(message: impl Into<ColoredString>) -> Self {
+    pub fn warn(message: impl Into<String>) -> Self {
         Self {
             level: LoadMessageLevel::Warn,
             message: message.into(),
@@ -26,7 +25,7 @@ impl LoadMessage {
     }
 
     // 创建错误消息
-    pub fn error(message: impl Into<ColoredString>) -> Self {
+    pub fn error(message: impl Into<String>) -> Self {
         Self {
             level: LoadMessageLevel::Error,
             message: message.into(),
@@ -34,7 +33,7 @@ impl LoadMessage {
     }
 
     // 创建提示消息
-    pub fn note(message: impl Into<ColoredString>) -> Self {
+    pub fn note(message: impl Into<String>) -> Self {
         Self {
             level: LoadMessageLevel::Note,
             message: message.into(),
@@ -88,20 +87,18 @@ impl LoadMessages {
 
     pub fn render_tree(&self, tree: &mut TreeBuilder) {
         for leaf in &self.messages {
-            let level_string = if colored::control::SHOULD_COLORIZE.should_colorize() {
+            let level_string = if crate::utils::message::supports_color() {
                 match leaf.level {
-                    LoadMessageLevel::Warn => "*".yellow(),
-                    LoadMessageLevel::Error => "*".red(),
-                    LoadMessageLevel::Note => "*".blue(),
+                    LoadMessageLevel::Warn => "*".yellow().bold().to_string(),
+                    LoadMessageLevel::Error => "*".red().bold().to_string(),
+                    LoadMessageLevel::Note => "*".blue().bold().to_string(),
                 }
-                .bold()
             } else {
                 match leaf.level {
-                    LoadMessageLevel::Warn => "[W]",
-                    LoadMessageLevel::Error => "[E]",
-                    LoadMessageLevel::Note => "[N]",
+                    LoadMessageLevel::Warn => "[W]".to_string(),
+                    LoadMessageLevel::Error => "[E]".to_string(),
+                    LoadMessageLevel::Note => "[N]".to_string(),
                 }
-                .into()
             };
 
             tree.add_leaf(&format!("{level_string} {}", leaf.message));
@@ -121,14 +118,10 @@ impl LoadMessages {
             if !matches!(leaf.level, LoadMessageLevel::Error) {
                 continue;
             }
-            let level_string = if colored::control::SHOULD_COLORIZE.should_colorize() {
-                match leaf.level {
-                    LoadMessageLevel::Error => "*".red(),
-                    _ => unreachable!(),
-                }
-                .bold()
+            let level_string = if crate::utils::message::supports_color() {
+                "*".red().bold().to_string()
             } else {
-                "[E]".into()
+                "[E]".to_string()
             };
 
             tree.add_leaf(&format!("{level_string} {}", leaf.message));
@@ -200,15 +193,15 @@ impl LoadContext {
         self.current_path.pop();
     }
 
-    pub fn emit_note(&mut self, message: impl Into<ColoredString>) {
+    pub fn emit_note(&mut self, message: impl Into<String>) {
         self.current().push(LoadMessage::note(message));
     }
 
-    pub fn emit_warn(&mut self, message: impl Into<ColoredString>) {
+    pub fn emit_warn(&mut self, message: impl Into<String>) {
         self.current().push(LoadMessage::warn(message));
     }
 
-    pub fn emit_error(&mut self, message: impl Into<ColoredString>) {
+    pub fn emit_error(&mut self, message: impl Into<String>) {
         self.current().push(LoadMessage::error(message));
     }
 

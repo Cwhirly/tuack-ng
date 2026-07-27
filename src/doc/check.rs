@@ -71,8 +71,8 @@ fn print_messages(messages: CheckResult, path: &Path, checker: &dyn CheckRule) {
                             col.to_string().magenta(),
                             line.to_string().magenta(),
                             match message.importance {
-                                CheckImportance::Warn => "警告".yellow(),
-                                CheckImportance::Error => "错误".red(),
+                                CheckImportance::Warn => "警告".yellow().to_string(),
+                                CheckImportance::Error => "错误".red().to_string(),
                             },
                             message.info
                         )
@@ -87,8 +87,8 @@ fn print_messages(messages: CheckResult, path: &Path, checker: &dyn CheckRule) {
                             )
                             .cyan(),
                             match message.importance {
-                                CheckImportance::Warn => "警告".yellow(),
-                                CheckImportance::Error => "错误".red(),
+                                CheckImportance::Warn => "警告".yellow().to_string(),
+                                CheckImportance::Error => "错误".red().to_string(),
                             },
                             message.info
                         )

@@ -5,8 +5,8 @@ use crate::tuack_lib::dmk::{DmkReporter, DmkResult, dmk};
 use crate::utils::compilers::generator::CppGenerator;
 use clap::Args;
 use clap::ValueEnum;
-use colored::ColoredString;
 use indicatif::ProgressBar;
+use owo_colors::OwoColorize;
 use std::fmt;
 use std::time::Duration;
 
@@ -28,14 +28,14 @@ impl fmt::Display for Target {
 }
 
 impl DmkResult {
-    fn colored_status(&self) -> ColoredString {
+    fn colored_status(&self) -> String {
         match self {
-            DmkResult::Gen => "GEN".green(),
-            DmkResult::Regen => "REGEN".green().bold(),
-            DmkResult::Reset => "RESET".cyan().bold(),
-            DmkResult::Skip => "SKIP".into(),
-            DmkResult::Empty => "EMPTY".magenta().bold(),
-            DmkResult::Fail(_) => "FAIL".red().bold(),
+            DmkResult::Gen => "GEN".green().to_string(),
+            DmkResult::Regen => "REGEN".green().bold().to_string(),
+            DmkResult::Reset => "RESET".cyan().bold().to_string(),
+            DmkResult::Skip => "SKIP".to_string(),
+            DmkResult::Empty => "EMPTY".magenta().bold().to_string(),
+            DmkResult::Fail(_) => "FAIL".red().bold().to_string(),
         }
     }
 

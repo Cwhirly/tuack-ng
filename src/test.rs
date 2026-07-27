@@ -3,10 +3,10 @@ use std::time::Duration;
 
 use bytesize::ByteSize;
 use clap::{Args, ValueEnum};
-use colored::Colorize;
 use csv::Writer;
 use evalexpr::eval_boolean;
 use indicatif::ProgressBar;
+use owo_colors::OwoColorize;
 
 use crate::config::ExpandedDataItem;
 use crate::config::ScorePolicy;
@@ -549,15 +549,17 @@ pub async fn test_problem(
                 });
 
                 let status_str = match case_status {
-                    TestCaseStatus::AC => "AC".green(),
-                    TestCaseStatus::WA => "WA".red(),
-                    TestCaseStatus::TLE => "TLE".blue(),
-                    TestCaseStatus::MLE => "MLE".blue(),
-                    TestCaseStatus::RE => "RE".bright_blue(),
-                    TestCaseStatus::UKE => "UKE".bright_black(),
+                    TestCaseStatus::AC => "AC".green().to_string(),
+                    TestCaseStatus::WA => "WA".red().to_string(),
+                    TestCaseStatus::TLE => "TLE".blue().to_string(),
+                    TestCaseStatus::MLE => "MLE".blue().to_string(),
+                    TestCaseStatus::RE => "RE".bright_blue().to_string(),
+                    TestCaseStatus::UKE => "UKE".bright_black().to_string(),
                     TestCaseStatus::Running => unreachable!(),
-                    TestCaseStatus::CE => "CE".yellow(),
-                    TestCaseStatus::PC(score) => format!("PC {:.2} / 100", score).yellow(),
+                    TestCaseStatus::CE => "CE".yellow().to_string(),
+                    TestCaseStatus::PC(score) => {
+                        format!("PC {:.2} / 100", score).yellow().to_string()
+                    }
                 };
                 msg_item!(
                     status_str.clone().bold(),

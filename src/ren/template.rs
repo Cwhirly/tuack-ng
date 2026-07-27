@@ -2,8 +2,8 @@ use crate::prelude::*;
 use crate::ren::manifest::TemplateManifest;
 use crate::ren::tools;
 use anyhow::Result;
-use colored::Colorize;
 use minijinja::{Environment, Value, context};
+use owo_colors::OwoColorize;
 
 fn input_file(problem: &ProblemConfig, file_io: bool) -> Result<String, minijinja::Error> {
     Ok(if file_io {

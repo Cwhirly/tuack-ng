@@ -1,17 +1,23 @@
 #![allow(unused)]
-pub use colored;
-pub use colored::Colorize;
+use anstream::{AutoStream, stderr, stdout};
+pub use owo_colors::OwoColorize;
 
-// 核心宏：内部使用
+pub fn supports_color() -> bool {
+    !matches!(
+        anstream::stdout().current_choice(),
+        anstream::ColorChoice::Never
+    )
+}
+
 #[macro_export]
 macro_rules! _internal_print {
     ($stream:ident, $($arg:tt)*) => {
         if let Some(ctx) = $crate::context::GLOBAL_CONTEXT.get() {
             ctx.multiprogress.suspend(|| {
-                $stream!($($arg)*);
+                anstream::$stream!($($arg)*);
             });
         } else {
-            $stream!($($arg)*);
+            anstream::$stream!($($arg)*);
         }
     };
 }
@@ -35,7 +41,8 @@ macro_rules! msg_progress {
     ($($arg:tt)*) => {
         $crate::msg!("{}", {
             let msg = format!($($arg)*);
-            if $crate::colored::control::SHOULD_COLORIZE.should_colorize() {
+
+            if $crate::utils::message::supports_color() {
                 msg.lines()
                     .map(|line| format!("{}{}", ">>> ".bold(), line))
                     .collect::<Vec<_>>()
@@ -55,7 +62,8 @@ macro_rules! msg_info {
     ($($arg:tt)*) => {
         $crate::msg!("{}", {
             let msg = format!($($arg)*);
-            if $crate::colored::control::SHOULD_COLORIZE.should_colorize() {
+
+            if $crate::utils::message::supports_color() {
                 msg.lines()
                     .map(|line| format!("{}{}", " * ".green().bold(), line))
                     .collect::<Vec<_>>()
@@ -75,7 +83,8 @@ macro_rules! msg_error {
     ($($arg:tt)*) => {
         $crate::msg!("{}", {
             let msg = format!($($arg)*);
-            if $crate::colored::control::SHOULD_COLORIZE.should_colorize() {
+
+            if $crate::utils::message::supports_color() {
                 msg.lines()
                     .map(|line| format!("{}{}", " * ".red().bold(), line))
                     .collect::<Vec<_>>()
@@ -95,7 +104,8 @@ macro_rules! msg_warn {
     ($($arg:tt)*) => {
         $crate::msg!("{}", {
             let msg = format!($($arg)*);
-            if $crate::colored::control::SHOULD_COLORIZE.should_colorize() {
+
+            if $crate::utils::message::supports_color() {
                 msg.lines()
                     .map(|line| format!("{}{}", " * ".yellow().bold(), line))
                     .collect::<Vec<_>>()
