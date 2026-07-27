@@ -5,25 +5,24 @@
 # <image src="doc/assets/icon.svg" height="26" width="26"/> Tuack-NG
 
 [![Stars](https://img.shields.io/github/stars/tuack-ng/tuack-ng?label=Stars)](https://github.com/tuack-ng/tuack-ng)
-<!-- [![正式版 Release](https://img.shields.io/github/v/release/tuack-ng/tuack-ng?style=flat-square&color=%233fb950&label=正式版)](https://github.com/tuack-ng/tuack-ng/releases/latest) -->
+[![正式版 Release](https://img.shields.io/github/v/release/tuack-ng/tuack-ng?style=flat-square&color=%233fb950&label=正式版)](https://github.com/tuack-ng/tuack-ng/releases/latest)
 [![测试版 Release](https://img.shields.io/github/v/release/tuack-ng/tuack-ng?include_prereleases&style=flat-square&label=测试版)](https://github.com/tuack-ng/tuack-ng/releases/)
 [![下载量](https://img.shields.io/github/downloads/tuack-ng/tuack-ng/total?style=social&label=下载量&logo=github)](https://github.com/tuack-ng/tuack-ng/releases/latest)<br/>
 ![GitHub Repo size](https://img.shields.io/github/repo-size/tuack-ng/tuack-ng?style=flat-square&color=3cb371)
-[![GitHub Repo Languages](https://img.shields.io/github/languages/top/tuack-ng/tuack-ng?style=flat-square)](https://github.com/tuack-ng/tuack-ng/search?l=c%23)
+[![GitHub Repo Languages](https://img.shields.io/github/languages/top/tuack-ng/tuack-ng?style=flat-square)](https://github.com/tuack-ng/tuack-ng/search?l=Rust)
 
 Tuack-NG（`Tuack New Generation`）是一套完整的用于辅助 OI/ACM 竞赛题目开发的套件，它的思想来自于 Tuack 项目。这个项目的目标是增强原 Tuack 的效率与易用性。
 
-详见：[项目 / 计划：tuack-ng](https://pulsar33550336.github.io/2025/12/10/%E9%A1%B9%E7%9B%AE-%E8%AE%A1%E5%88%92%EF%BC%9Atuack-ng/)
-
 <!-- #### 💬[Tuack-NG QQ 频道](https://pd.qq.com/s/grr6qwqwj) | [Tuack-NG QQ 群组](https://qm.qq.com/q/4NsDQKiAuQ) -->
 
-#### [🌐 官方网站 ~~（没做）~~](https://tuack-ng.ink/) <!-- | [🚀 软件下载](https://tuack-ng.ink/download) -->｜[📚 项目文档](https://docs.tuack-ng.ink)<!-- ｜[🗳 功能投票](https://github.com/Tuack-NG/voting/discussions?discussions_q=is%3Aopen+sort%3Atop) -->
+#### [🌐 官方网站 ~~（没做）~~](https://tuack-ng.ink/) | [🚀 软件下载](https://github.com/tuack-ng/tuack-ng/releases)｜[📚 项目文档](https://docs.tuack-ng.ink)
 
 </div>
 
 ## 功能
 
 ### 基本功能
+
 - [x] 支持样例、数据
 - [ ] 支持预测试数据点
 - [x] 支持交互题出题流程
@@ -40,7 +39,7 @@ Tuack-NG（`Tuack New Generation`）是一套完整的用于辅助 OI/ACM 竞赛
   - [x] NOI 格式
   - [x] CCPC 格式
 - [x] 渲染到 Markdown
-- [ ] 渲染到 Html
+- [ ]渲染到 HTML
 - [ ] 渲染到 (...)
 - [x] 基于 MiniJinja 的模板系统
 - [ ] 支持多语言
@@ -56,26 +55,33 @@ Tuack-NG（`Tuack New Generation`）是一套完整的用于辅助 OI/ACM 竞赛
 - [x] 支持生成评测结果 CSV
 
 ### 数据生成（`dmk`）
+
 - [x] 支持为样例/数据单独指定数据生成器
 - [x] 支持交互题
 
 ### 其他
+
 #### 导出（`dump`）
+
 - [x] 支持导出到 Lemon/Arbiter
 - [ ] 支持导出到 Hydro/Syzoj(Loj)/洛谷（？）
+
 #### 配置文件前端（`conf`）
+
 - [x] 支持批量修改配置文件字段/标题/起止持续时间
+
 #### 文档（`doc`）
+
 - [x] 支持检测题目中不规范的问题
 - [x] 支持在可行的情况下自动修复问题
 - [ ] 支持导入
-- [ ] **支持从 Tuack 导入**
+- [x] [**支持从 Tuack 导入**](https://github.com/tuack-ng/Tuack-Migrater)
 
 > [!TIP]
 >
 > 您可以点击下方链接或查看 [Tuack-NG 文档](https://docs.tuack-ng.ink) 了解更多。
 
-## 软件截图
+<!-- ## 软件截图
 
 - 题目渲染
 
@@ -83,15 +89,16 @@ Tuack-NG（`Tuack New Generation`）是一套完整的用于辅助 OI/ACM 竞赛
 
 - 测试
 
-![2](https://pulsar33550336.github.io/img/2.svg)
+![2](https://pulsar33550336.github.io/img/2.svg) -->
 
 ## 开始使用
 
 **首先，请确保您的设备满足以下推荐需求：**
 
+- Windows（建议 Windows 10 及以上版本）
 - Debian（或其衍生版）或 Arch Linux。
 - 对于其他系统及发行版的支持将在稍后添加。
-  
+
 > [!IMPORTANT]
 > **详细安装说明请参阅 [Tuack-NG 文档](https://docs.tuack-ng.ink/guide/install)。**
 
@@ -105,7 +112,7 @@ Tuack-NG（`Tuack New Generation`）是一套完整的用于辅助 OI/ACM 竞赛
 
 您可以访问以下页面来**获取帮助**：
 
-- [Tuack-NG 帮助文档](https://docs.tuack-ng.ink/guide/install)
+- [Tuack-NG 帮助文档](https://docs.tuack-ng.ink/app/install)
 
 您也可以加入这些社区**寻求帮助**：
 
@@ -122,13 +129,13 @@ Tuack-NG（`Tuack New Generation`）是一套完整的用于辅助 OI/ACM 竞赛
 
 本项目目前开发状态：
 
-| 分支 | 开发状态 | 状态 |
-| :-: | :-: | :-: |
+|   分支   |                                      开发状态                                      |                                                                                           状态                                                                                           |
+| :------: | :--------------------------------------------------------------------------------: | :--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------: |
 | `master` | 正在此分支上开发 [1.0 - Kaslana](https://github.com/tuack-ng/tuack-ng/milestone/1) | [![Build](https://github.com/tuack-ng/tuack-ng/actions/workflows/rust.yml/badge.svg?branch=master&style=flat_square)](<https://github.com/tuack-ng/tuack-ng/actions/workflows/rust.yml>) |
 
 <!-- 要在本地编译应用，请参考文档 [配置 Tuack-NG 本体开发环境](https://docs.tuack-ng.ink/dev/get-started/devlopment.html)。 -->
 
-如果您有意愿为 Tuack-NG 做出代码贡献，请先阅读 ~~[贡献指南](CONTRIBUTING.md)~~ 没写 来了解如何为 Tuack-NG 做代码贡献。我们欢迎想要为本应用实现新功能或进行改进的同学提交 [Pull Request](https://github.com/tuack-ng/tuack-ng/pulls)。
+如果您有意愿为 Tuack-NG 做出代码贡献，请先阅读 [贡献指南](CONTRIBUTING.md) 没写 来了解如何为 Tuack-NG 做代码贡献。我们欢迎想要为本应用实现新功能或进行改进的同学提交 [Pull Request](https://github.com/tuack-ng/tuack-ng/pulls)。
 
 您可以参考 [DeepWiki](https://deepwiki.com/tuack-ng/tuack-ng) 来了解项目结构。 [![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/tuack-ng/tuack-ng)
 
@@ -167,7 +174,13 @@ Tuack-NG（`Tuack New Generation`）是一套完整的用于辅助 OI/ACM 竞赛
 
 ## Stars 历史
 
-[![Star 历史](https://starchart.cc/tuack-ng/tuack-ng.svg?variant=adaptive)](https://starchart.cc/tuack-ng/tuack-ng)
+<a href="https://www.star-history.com/?repos=tuack-ng%2Ftuack-ng&type=date&legend=top-left">
+ <picture>
+   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/chart?repos=tuack-ng/tuack-ng&type=date&theme=dark&legend=top-left&sealed_token=YwWAUrHmow2w8gExONVDefri57drGKoPDB5naszq9099lixpjDf0VqDfOW2xDUSgBEU5Qb715tsf4cC8ftdpNWqoa6kre1Ic7q-pMXjVKyVaJm4gPCtGmUt2PKOMExKMQylZKAt1DaQfacggpnVz-Re61o1etqBpl7qaY2TbqoSMSW9vOVlC-dYnbA0H" />
+   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/chart?repos=tuack-ng/tuack-ng&type=date&legend=top-left&sealed_token=YwWAUrHmow2w8gExONVDefri57drGKoPDB5naszq9099lixpjDf0VqDfOW2xDUSgBEU5Qb715tsf4cC8ftdpNWqoa6kre1Ic7q-pMXjVKyVaJm4gPCtGmUt2PKOMExKMQylZKAt1DaQfacggpnVz-Re61o1etqBpl7qaY2TbqoSMSW9vOVlC-dYnbA0H" />
+   <img alt="Star History Chart" src="https://api.star-history.com/chart?repos=tuack-ng/tuack-ng&type=date&legend=top-left&sealed_token=YwWAUrHmow2w8gExONVDefri57drGKoPDB5naszq9099lixpjDf0VqDfOW2xDUSgBEU5Qb715tsf4cC8ftdpNWqoa6kre1Ic7q-pMXjVKyVaJm4gPCtGmUt2PKOMExKMQylZKAt1DaQfacggpnVz-Re61o1etqBpl7qaY2TbqoSMSW9vOVlC-dYnbA0H" />
+ </picture>
+</a>
 
 <div align="center">
 
