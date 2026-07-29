@@ -4,6 +4,8 @@
 
 # <image src="doc/assets/icon.svg" height="26" width="26"/> Tuack-NG
 
+![Banner](doc/assets/banner.png)
+
 [![Stars](https://img.shields.io/github/stars/tuack-ng/tuack-ng?label=Stars)](https://github.com/tuack-ng/tuack-ng)
 [![正式版 Release](https://img.shields.io/github/v/release/tuack-ng/tuack-ng?style=flat-square&color=%233fb950&label=正式版)](https://github.com/tuack-ng/tuack-ng/releases/latest)
 [![测试版 Release](https://img.shields.io/github/v/release/tuack-ng/tuack-ng?include_prereleases&style=flat-square&label=测试版)](https://github.com/tuack-ng/tuack-ng/releases/)
