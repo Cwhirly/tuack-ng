@@ -35,7 +35,7 @@ impl CppChecker {
             compile_args: compile_args
                 .get(&ext)
                 .cloned()
-                .unwrap_or_else(|| "-O2 -std=c++23".to_string()),
+                .unwrap_or_else(|| "-O2 -std=c++17".to_string()),
             program_name,
             binary_path: None,
             dependencies,
