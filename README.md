@@ -142,7 +142,7 @@ Tuack-NG（`Tuack New Generation`）是一套完整的用于辅助 OI/ACM 竞赛
 
 [1.0 - Kaslana]: https://github.com/tuack-ng/tuack-ng/milestone/1
 [1.0-badge]: https://github.com/tuack-ng/tuack-ng/actions/workflows/rust.yml/badge.svg?branch=1.0&style=flat_square
-[1.0-link]: https://github.com/tuack-ng/tuack-ng/actions/workflows/rust.yml?query=1.0%master
+[1.0-link]: https://github.com/tuack-ng/tuack-ng/actions/workflows/rust.yml?query=branch%3A1.0
 
 <!-- 要在本地编译应用，请参考文档 [配置 Tuack-NG 本体开发环境](https://docs.tuack-ng.ink/dev/get-started/devlopment.html)。 -->
 
