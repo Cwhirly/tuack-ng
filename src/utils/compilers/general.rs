@@ -68,11 +68,15 @@ impl GeneralRunner {
                             .path()
                             .to_string_lossy()
                             .to_string()
+                            .replace("\\", "\\\\")
                             .replace(" ", "\\ "),
                     ),
                     (
                         "program_name".to_string(),
-                        self.program_name.clone().replace(" ", "\\ "),
+                        self.program_name
+                            .clone()
+                            .replace("\\", "\\\\")
+                            .replace(" ", "\\ "),
                     ),
                     ("args".to_string(), self.compile_args.clone()),
                     (
@@ -83,6 +87,7 @@ impl GeneralRunner {
                             .with_extension(self.source.extension().unwrap())
                             .to_string_lossy()
                             .to_string()
+                            .replace("\\", "\\\\")
                             .replace(" ", "\\ "),
                     ),
                     (
@@ -109,6 +114,7 @@ impl GeneralRunner {
                             .path()
                             .to_string_lossy()
                             .to_string()
+                            .replace("\\", "\\\\")
                             .replace(" ", "\\ "),
                     ),
                     ("program_name".to_string(), self.program_name.clone()),

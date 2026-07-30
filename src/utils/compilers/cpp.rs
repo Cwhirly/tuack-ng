@@ -65,6 +65,7 @@ impl CppRunner {
             ))
             .display()
             .to_string()
+            .replace("\\", "\\\\")
             .replace(" ", "\\ ");
 
         let source_path = self
@@ -74,6 +75,7 @@ impl CppRunner {
             .with_extension(self.source.extension().unwrap())
             .display()
             .to_string()
+            .replace("\\", "\\\\")
             .replace(" ", "\\ ");
 
         let mut cmd_str = format!("g++ -o {} {} {}", exe_path, self.compile_args, source_path);
@@ -85,6 +87,7 @@ impl CppRunner {
                 .join("grader.cpp")
                 .display()
                 .to_string()
+                .replace("\\", "\\\\")
                 .replace(" ", "\\ ");
             cmd_str = format!("{} {}", cmd_str, grader_path);
         }

@@ -1,6 +1,6 @@
+use rand::Rng;
 use std::collections::BTreeMap;
 use std::str::FromStr;
-use rand::Rng;
 use tokio::fs;
 
 use crate::config::ExpandedDataItem;

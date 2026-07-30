@@ -60,7 +60,11 @@ impl Generator for CppGenerator {
             fs::write(&target, content)?;
         }
 
-        let binary_path = self.tmp_dir.path().join("gen");
+        let binary_path = self
+            .tmp_dir
+            .path()
+            .join("gen")
+            .with_extension(std::env::consts::EXE_EXTENSION);
         let mut cmd = Command::new("g++");
         cmd.arg("-o").arg(&binary_path).arg(&source_target);
 

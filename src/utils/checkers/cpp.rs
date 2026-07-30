@@ -61,7 +61,11 @@ impl Checker for CppChecker {
             fs::write(&target, content)?;
         }
 
-        let binary_path = self.tmp_dir.path().join("chk");
+        let binary_path = self
+            .tmp_dir
+            .path()
+            .join("chk")
+            .with_extension(std::env::consts::EXE_EXTENSION);
         let mut cmd = Command::new("g++");
         cmd.arg("-o").arg(&binary_path).arg(&source_target);
 
