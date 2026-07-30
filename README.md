@@ -131,9 +131,18 @@ Tuack-NG（`Tuack New Generation`）是一套完整的用于辅助 OI/ACM 竞赛
 
 本项目目前开发状态：
 
-|   分支   |                                      开发状态                                      |                                                                                           状态                                                                                           |
-| :------: | :--------------------------------------------------------------------------------: | :--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------: |
-| `master` | 正在此分支上开发 [1.0 - Kaslana](https://github.com/tuack-ng/tuack-ng/milestone/1) | [![Build](https://github.com/tuack-ng/tuack-ng/actions/workflows/rust.yml/badge.svg?branch=master&style=flat_square)](<https://github.com/tuack-ng/tuack-ng/actions/workflows/rust.yml>) |
+|   分支   |             开发状态             |              状态              |
+| :------: | :------------------------------: | :----------------------------: |
+| `master` | 正在此分支上开发 [1.1 - Sparkle] | [![master-badge]][master-link] |
+|  `1.0`   | 正在此分支上维护 [1.0 - Kaslana] |    [![1.0-badge]][1.0-link]    |
+
+[1.1 - Sparkle]: https://github.com/tuack-ng/tuack-ng/milestone/3
+[master-badge]: https://github.com/tuack-ng/tuack-ng/actions/workflows/rust.yml/badge.svg?branch=master&style=flat_square
+[master-link]: https://github.com/tuack-ng/tuack-ng/actions/workflows/rust.yml?query=branch%master
+
+[1.0 - Kaslana]: https://github.com/tuack-ng/tuack-ng/milestone/1
+[1.0-badge]: https://github.com/tuack-ng/tuack-ng/actions/workflows/rust.yml/badge.svg?branch=1.0&style=flat_square
+[1.0-link]: https://github.com/tuack-ng/tuack-ng/actions/workflows/rust.yml?query=1.0%master
 
 <!-- 要在本地编译应用，请参考文档 [配置 Tuack-NG 本体开发环境](https://docs.tuack-ng.ink/dev/get-started/devlopment.html)。 -->
 
