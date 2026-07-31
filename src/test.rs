@@ -148,12 +148,12 @@ fn validate_output(
                 .assets_dirs
                 .iter()
                 .find_map(|dir| {
-                    dir.join("checkers")
-                        .join("normal")
-                        .exists()
-                        .then(|| dir.join("checkers").join("normal"))
+                    dir.join("checkers").join("normal").exists().then(|| {
+                        dir.join("checkers")
+                            .join(format!("normal{}", std::env::consts::EXE_SUFFIX))
+                    })
                 })
-                .unwrap_or_else(|| gctx().assets_dirs[0].join("checkers").join("normal"));
+                .context("Checker 文件不存在")?;
             let pchk = PrebuiltChecker::new(default_binary);
             pchk.validate(&input_path, output, &answer_path)
         }
@@ -307,11 +307,7 @@ pub async fn test_problem(
                         return Ok(());
                     }
                 };
-                let name = dep_path
-                    .split('/')
-                    .next_back()
-                    .unwrap_or(dep_path)
-                    .to_string();
+                let name = abs.file_name().unwrap().to_string_lossy().to_string();
                 deps.insert(name, content);
             }
 

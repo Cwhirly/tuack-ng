@@ -255,6 +255,10 @@ fn arbiter_down_day(day: &ContestDayConfig, down_dir: &Path) -> Result<()> {
 }
 
 pub fn main(contest: &ContestConfig, day: &ContestDayConfig, daynum: usize) -> Result<()> {
+    if !cfg!(target_os = "linux") {
+        bail!("Arbiter 不支持 Linux 之外的操作系统，也不支持在 Linux 之外的操作系统导出");
+    }
+
     let out_root = day.path.join("dump").join("arbiter");
 
     // --- 初始化目录结构 ---

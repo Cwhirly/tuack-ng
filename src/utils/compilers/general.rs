@@ -126,7 +126,11 @@ impl GeneralRunner {
             )?;
             Ok(string_to_command(run_cmd.as_str())?)
         } else {
-            let program_path = self.tmp_dir.path().join(&self.program_name);
+            let program_path = self.tmp_dir.path().join(format!(
+                "{}{}",
+                &self.program_name,
+                std::env::consts::EXE_SUFFIX
+            ));
             if !program_path.exists() {
                 bail!("可执行文件不存在：{}", program_path.display());
             }

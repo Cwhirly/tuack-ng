@@ -3,6 +3,7 @@ use crate::ren::manifest::TemplateManifest;
 use crate::utils::filesystem::create_or_clear_dir;
 use clap::{Args, Subcommand};
 use owo_colors::OwoColorize;
+use path_slash::PathExt as _;
 use sha2::Digest;
 use sha2::Sha256;
 
@@ -200,7 +201,7 @@ fn wrap() -> Result<()> {
             let name = entry_path
                 .strip_prefix(&unwrapped_path)
                 .unwrap()
-                .display()
+                .to_slash_lossy()
                 .to_string();
             msg_progress!("包装 {} 文件夹", name.bold());
             let manifest_path = entry_path.join("manifest.json");
