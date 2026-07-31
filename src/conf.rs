@@ -4,22 +4,23 @@ use chrono::Datelike;
 use chrono::Timelike;
 use chrono::{Duration, NaiveDateTime};
 
-fn add_minutes(time: [u32; 6], minutes: i64) -> [u32; 6] {
+fn add_minutes(time: [u32; 6], minutes: i64) -> Result<[u32; 6]> {
     let dt = NaiveDateTime::new(
-        chrono::NaiveDate::from_ymd_opt(time[0] as i32, time[1], time[2]).unwrap(),
-        chrono::NaiveTime::from_hms_opt(time[3], time[4], time[5]).unwrap(),
+        chrono::NaiveDate::from_ymd_opt(time[0] as i32, time[1], time[2])
+            .context("date invalid")?,
+        chrono::NaiveTime::from_hms_opt(time[3], time[4], time[5]).context("time invalid")?,
     );
 
     let new_dt = dt + Duration::minutes(minutes);
 
-    [
+    Ok([
         new_dt.year() as u32,
         new_dt.month(),
         new_dt.day(),
         new_dt.hour(),
         new_dt.minute(),
         new_dt.second(),
-    ]
+    ])
 }
 
 use crate::{
@@ -175,10 +176,10 @@ fn conf_length(args: &ConfValuesArgs) -> Result<()> {
                 bail!("提供的时间限制数量与题目数量不匹配");
             }
             for (i, (day_name, day_config)) in config.subconfig.iter_mut().enumerate() {
-                let minutes: f64 = args.value[i].clone().parse()?;
-                let minutes = (minutes * 60.0) as i64;
+                let hours: f64 = args.value[i].clone().parse()?;
+                let minutes = (hours * 60.0) as i64;
                 if let Some(start_time) = day_config.start_time {
-                    day_config.end_time = Some(add_minutes(start_time, minutes));
+                    day_config.end_time = Some(add_minutes(start_time, minutes)?);
                 } else {
                     msg_warn!("比赛日 {} 没有配置比赛开始时间，跳过", day_name);
                 }

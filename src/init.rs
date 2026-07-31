@@ -131,9 +131,9 @@ fn init_context(multi: MultiProgress, migrating: bool, validating: bool) -> Resu
     ];
 
     let mut ctx = if migrating {
-        LoadContext::new()
-    } else {
         LoadContext::new_force_migrate()
+    } else {
+        LoadContext::new()
     };
 
     let config = match load_config(&mut ctx, Path::new(".")) {

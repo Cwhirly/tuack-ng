@@ -258,17 +258,18 @@ impl Runner for GeneralRunner {
                 cmd.stdout(Stdio::null());
             }
         }
-        cmd.stderr(Stdio::piped());
+
+        let stderr_path = self.tmp_dir.path().join("pipe_stderr");
+        let stderr_file = std::fs::File::create(&stderr_path)?;
+        cmd.stderr(Stdio::from(stderr_file));
 
         let mut tokio_cmd = TokioCommand::from(cmd);
         let mut child = tokio_cmd.spawn()?;
 
         let (status, time, memory) = ProcessSupervisor::new(limits).supervise(&mut child).await?;
 
-        let mut stderr = Vec::new();
-        if let Some(mut err) = child.stderr.take() {
-            let _ = err.read_to_end(&mut stderr).await;
-        }
+        // 读取 stderr
+        let stderr = tokio::fs::read(stderr_path).await?;
 
         let output = match &self.io_mode {
             IoMode::Stdio => tokio::fs::read(self.tmp_dir.path().join("pipe_stdout"))

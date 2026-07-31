@@ -278,7 +278,7 @@ fn ren(
             msg_info!("结果已保存到：{}", target.display());
 
             if !args.no_auto_open {
-                open(target)?;
+                let _ = open(target);
             }
 
             if args.keep_tmp {

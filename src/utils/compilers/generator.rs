@@ -105,8 +105,7 @@ impl Generator for CppGenerator {
             cmd_args.push(format!("-{}={}", key, val_str));
         }
 
-        cmd_args.push("-seed".to_string());
-        cmd_args.push(seed.to_string());
+        cmd_args.push(format!("-seed={}", seed).to_string());
 
         let output = Command::new(binary)
             .args(&cmd_args)

@@ -288,26 +288,29 @@ async fn get_or_generate_seed(
     data: &[ExpandedDataItem],
 ) -> Result<BTreeMap<u32, u64>> {
     let mut rng = gen_rnd()?;
-    let mut seeds: BTreeMap<u32, u64> = BTreeMap::new();
-
     let seed_file = target_dir.join(".seed");
 
-    if !force && seed_file.exists() {
-        let seed_str = fs::read_to_string(&seed_file).await?;
-        seeds = serde_json::from_str(&seed_str).unwrap_or_else(|e| {
+    // 尝试加载已有种子（文件不存在或无效均视为空）
+    let mut seeds = if let Ok(seed_str) = fs::read_to_string(&seed_file).await {
+        serde_json::from_str(&seed_str).unwrap_or_else(|e| {
             msg_warn!(".seed 文件无效，重新生成：{}", e);
             BTreeMap::new()
-        });
-    }
+        })
+    } else {
+        BTreeMap::new()
+    };
 
     for item in data {
         let id = item.id;
-        seeds.entry(id).or_insert_with(|| rng.random::<u64>());
+        if force {
+            seeds.insert(id, rng.random::<u64>());
+        } else {
+            seeds.entry(id).or_insert_with(|| rng.random::<u64>());
+        }
     }
 
     Ok(seeds)
 }
-
 /// 保存种子
 fn save_seed(target_dir: &Path, seeds: BTreeMap<u32, u64>) -> Result<()> {
     let seed_file = target_dir.join(".seed");

@@ -349,7 +349,7 @@ fn gen_data(args: GenConfirmArgs) -> Result<()> {
             data_entries.sort_by(|a, b| compare(a, b));
             let count = data_entries.len() as u32;
 
-            let data: Vec<DataItem> = data_entries
+            let mut data: Vec<DataItem> = data_entries
                 .into_iter()
                 .enumerate()
                 .map(|(id, name)| {
@@ -364,6 +364,13 @@ fn gen_data(args: GenConfirmArgs) -> Result<()> {
                     })
                 })
                 .collect();
+
+            if let Some(last) = data.last_mut() {
+                if let DataItem::Single(item) = last {
+                    item.score += 100 % count;
+                }
+            }
+
             let subtasks: BTreeMap<u32, ScorePolicy> = BTreeMap::from([(0, ScorePolicy::Sum)]);
 
             let mut _ctx = LoadContext::new();

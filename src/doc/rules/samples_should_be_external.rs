@@ -98,7 +98,8 @@ impl SamplesShouldBeExternal {
             .iter()
             .map(|item| item.id)
             .max()
-            .unwrap_or(0) as usize;
+            .unwrap_or(0) as usize
+            + 1;
 
         let mut samples: Vec<ExportedSample> = Vec::new();
 
