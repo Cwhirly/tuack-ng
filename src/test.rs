@@ -148,10 +148,13 @@ fn validate_output(
                 .assets_dirs
                 .iter()
                 .find_map(|dir| {
-                    dir.join("checkers").join("normal").exists().then(|| {
-                        dir.join("checkers")
-                            .join(format!("normal{}", std::env::consts::EXE_SUFFIX))
-                    })
+                    dir.join("checkers")
+                        .join(format!("normal{}", std::env::consts::EXE_SUFFIX))
+                        .exists()
+                        .then(|| {
+                            dir.join("checkers")
+                                .join(format!("normal{}", std::env::consts::EXE_SUFFIX))
+                        })
                 })
                 .context("Checker 文件不存在")?;
             let pchk = PrebuiltChecker::new(default_binary);
@@ -340,17 +343,6 @@ pub async fn test_problem(
         }
         None => None,
     };
-
-    // 测试进度条
-    let test_pb = gctx()
-        .multiprogress
-        .add(ProgressBar::new(data_items.len() as u64));
-    test_pb.set_style(
-        indicatif::ProgressStyle::default_bar()
-            .template("  [{bar:40.magenta/blue}] {msg}")
-            .unwrap()
-            .progress_chars("=> "),
-    );
 
     let mut all_test_results = Vec::new();
 
@@ -696,7 +688,6 @@ pub async fn test_problem(
         Target::Sample => "result-sample.csv",
     });
     write_results_to_csv(all_test_results, &csv_path)?;
-    test_pb.finish_and_clear();
 
     Ok(())
 }

@@ -39,7 +39,7 @@ impl super::base::Migrater for V6Migrater {
         if obj.get("version").and_then(|v| v.as_u64()).is_some() {
             obj.insert("version".to_string(), serde_json::json!(7));
         }
-        obj.remove("partial-score");
+        obj.remove("partial score");
         Ok(config)
     }
 }

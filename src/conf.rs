@@ -164,7 +164,7 @@ fn conf_length(args: &ConfValuesArgs) -> Result<()> {
         .context("没有找到有效的工程")?
         .location
     {
-        CurrentLocation::Problem(_, _) => bail!("本命令不支持设置单个题目时间限制"),
+        CurrentLocation::Problem(_, _) => bail!("本命令不能在题目目录使用，请在比赛根目录设置比赛长度"),
         CurrentLocation::Root => {
             let mut config = gctx()
                 .config
@@ -173,7 +173,7 @@ fn conf_length(args: &ConfValuesArgs) -> Result<()> {
                 .config
                 .clone();
             if args.value.len() != config.subconfig.len() {
-                bail!("提供的时间限制数量与题目数量不匹配");
+                bail!("提供的比赛长度数量与比赛日数量不匹配");
             }
             for (i, (day_name, day_config)) in config.subconfig.iter_mut().enumerate() {
                 let hours: f64 = args.value[i].clone().parse()?;
@@ -188,7 +188,7 @@ fn conf_length(args: &ConfValuesArgs) -> Result<()> {
             }
             Ok(())
         }
-        CurrentLocation::Day(_) => bail!("本命令不能为比赛日设置时间限制"),
+        CurrentLocation::Day(_) => bail!("本命令不能在比赛日目录使用，请在比赛根目录设置比赛长度"),
         CurrentLocation::None => bail!("没有找到有效的配置文件"),
     }
 }
@@ -200,7 +200,7 @@ fn conf_custom(args: &ConfCustomArgs) -> Result<()> {
         .context("没有找到有效的工程")?
         .location
     {
-        CurrentLocation::Problem(_, _) => bail!("本命令不支持设置单个题目标题"),
+        CurrentLocation::Problem(_, _) => bail!("本命令不能为单个题目设置任意字段"),
         CurrentLocation::Day(ref day) => {
             let mut day_config = gctx()
                 .config
@@ -212,7 +212,7 @@ fn conf_custom(args: &ConfCustomArgs) -> Result<()> {
                 .unwrap()
                 .clone();
             if args.value.len() != day_config.subconfig.len() {
-                bail!("提供的标题数量与题目数量不匹配");
+                bail!("提供的键值数量与题目数量不匹配");
             }
             for (i, (_prob_name, prob_config)) in day_config.subconfig.iter_mut().enumerate() {
                 let mut json = serde_json::to_value(&prob_config).unwrap();
@@ -236,7 +236,7 @@ fn conf_custom(args: &ConfCustomArgs) -> Result<()> {
                 .config
                 .clone();
             if args.value.len() != config.subconfig.len() {
-                bail!("提供的标题数量与题目数量不匹配");
+                bail!("提供的键值数量与比赛日数量不匹配");
             }
             for (i, (_day_name, day_config)) in config.subconfig.iter_mut().enumerate() {
                 let mut json = serde_json::to_value(&day_config)?;

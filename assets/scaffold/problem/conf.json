@@ -6,7 +6,6 @@
   "title": "题目名称",
   "time limit": 1.0,
   "memory limit": "512 MiB",
-  "partial score": false,
   "args": {},
   "dmk": "on",
   "generator": null,

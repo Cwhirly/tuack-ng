@@ -222,7 +222,7 @@ fn ren(
             }
         }
     } else {
-        msg_warn!("未找到注意事项文件");
+        bail!("未找到注意事项文件：{}", precaution_path.display());
     }
 
     problem_pb.finish_and_clear();

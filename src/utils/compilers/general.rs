@@ -117,7 +117,13 @@ impl GeneralRunner {
                             .replace("\\", "\\\\")
                             .replace(" ", "\\ "),
                     ),
-                    ("program_name".to_string(), self.program_name.clone()),
+                    (
+                        "program_name".to_string(),
+                        self.program_name
+                            .clone()
+                            .replace("\\", "\\\\")
+                            .replace(" ", "\\ "),
+                    ),
                     (
                         "exe_suffix".to_string(),
                         std::env::consts::EXE_SUFFIX.to_string(),

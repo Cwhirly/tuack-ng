@@ -227,7 +227,9 @@ fn wrap() -> Result<()> {
                         .unwrap_or_default()
                 );
                 manifest.filelist.insert(
-                    file.strip_prefix(&entry_path)?.display().to_string(),
+                    file.strip_prefix(&entry_path)?
+                        .to_slash_lossy()
+                        .to_string(),
                     sha256.clone(),
                 );
                 let obj_path = store_path.join(&sha256);

@@ -19,7 +19,6 @@ fn get_formatters() -> Vec<Box<dyn FormatRule>> {
     vec![
         Box::new(invisible::Invisible),
         Box::new(samples_should_be_external::SamplesShouldBeExternal),
-        Box::new(samples_should_be_external::SamplesShouldBeExternal),
         Box::new(samples_too_large::SamplesTooLarge),
         Box::new(autocorrect::Autocorrect),
     ]
@@ -36,30 +35,30 @@ pub fn format(problem_config: &ProblemConfig) -> Result<()> {
     let mut problem_config = problem_config.to_owned();
 
     for formatter in &formatters {
+        // 每个规则先应用文本规则，再解析为 AST 应用 AST 规则
         if formatter.manifest().markdown_formatter {
             debug!("正在应用文本格式化规则 {}", formatter.manifest().name);
             (markdown_text, problem_config) =
                 formatter.apply_markdown(markdown_text, problem_config)?;
         }
-    }
 
-    let state = MarkdownParserState::new();
-    let mut ast = match parse_markdown(state, &markdown_text) {
-        Ok(val) => val,
-        Err(_) => bail!("解析题面文件失败"),
-    };
+        let state = MarkdownParserState::new();
+        let mut ast = match parse_markdown(state, &markdown_text) {
+            Ok(val) => val,
+            Err(_) => bail!("解析题面文件失败"),
+        };
 
-    for formatter in &formatters {
         if formatter.manifest().ast_formatter {
             debug!("正在应用格式化规则 {}", formatter.manifest().name);
             (ast, problem_config) = formatter.apply_ast(ast, problem_config)?;
         }
-    }
 
-    let markdown_text = markdown_ppp::printer::render_markdown(
-        &ast,
-        markdown_ppp::printer::config::Config::default().with_width(10000000),
-    );
+        // 渲染回 Markdown，供下一轮规则使用
+        markdown_text = markdown_ppp::printer::render_markdown(
+            &ast,
+            markdown_ppp::printer::config::Config::default().with_width(10000000),
+        );
+    }
 
     fs::write(&markdown_path, markdown_text)?;
 

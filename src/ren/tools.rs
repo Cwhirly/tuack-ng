@@ -64,6 +64,11 @@ pub fn comma(num: i64) -> String {
     result.chars().rev().collect()
 }
 
+/// 科学计数法的系数部分（如 `1.5 × 10^3` 中的 `1.5`）
+fn sci_coeff(int_num: i64, n: i32) -> String {
+    format!("{}", int_num as f64 / 10_f64.powi(n))
+}
+
 /// 格式化数字为适合阅读的表示形式
 ///
 /// ## 参数
@@ -90,7 +95,7 @@ pub fn hn(num: f64, style: Option<&str>) -> String {
                     format!(
                         "{}{} \\times 10^{{{}}}",
                         neg,
-                        int_num / 10_i64.pow(n as u32),
+                        sci_coeff(int_num, n),
                         n
                     )
                 }
@@ -101,8 +106,7 @@ pub fn hn(num: f64, style: Option<&str>) -> String {
                 let scientific_len = if int_num == 10_i64.pow(n as u32) {
                     3 + n.to_string().len()
                 } else {
-                    let coeff = int_num / 10_i64.pow(n as u32);
-                    coeff.to_string().len() + 8 + n.to_string().len()
+                    sci_coeff(int_num, n).len() + 8 + n.to_string().len()
                 };
 
                 let comma_str = comma(int_num);
@@ -116,7 +120,7 @@ pub fn hn(num: f64, style: Option<&str>) -> String {
                     format!(
                         "{}{} \\times 10^{{{}}}",
                         neg,
-                        int_num / 10_i64.pow(n as u32),
+                        sci_coeff(int_num, n),
                         n
                     )
                 }

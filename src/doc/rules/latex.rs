@@ -28,6 +28,10 @@ lazy_static! {
     // 除号
     static ref DIVIDE_SLASH: Regex = Regex::new(r"/").unwrap();
 
+    // \frac{...}{...} 及其变体（dfrac/tfrac/cfrac），也支持 \frac ab 的简写形式
+    static ref FRACTION_CMD: Regex =
+        Regex::new(r"\\[a-z]*frac(\s*\{[^{}]*\}|\s*\S)(\s*\{[^{}]*\}|\s*\S)").unwrap();
+
     // mod 运算符
     static ref MOD_OPERATOR: Regex = Regex::new(r"\bmod\b").unwrap();
 
@@ -138,19 +142,18 @@ impl LatexVisitor {
         }
 
         // 检查除号（斜杠）
-        if DIVIDE_SLASH.is_match(latex) {
-            // 排除已经在 \frac 等命令中的
-            if !latex.contains("\\frac") {
-                self.messages.push(CheckInfo {
-                    line: None,
-                    col: None,
-                    info: format!(
-                        "在公式 {} 中：一般不用斜杠 `/` 做除号，应该用 `\\frac{{}}{{}}` 或 `\\div`",
-                        latex
-                    ),
-                    importance: CheckImportance::Warn,
-                });
-            }
+        // 先剔除 \frac 等命令本身，剩下的斜杠才是需要告警的除号
+        let without_fraction = FRACTION_CMD.replace_all(latex, "");
+        if DIVIDE_SLASH.is_match(&without_fraction) {
+            self.messages.push(CheckInfo {
+                line: None,
+                col: None,
+                info: format!(
+                    "在公式 {} 中：一般不用斜杠 `/` 做除号，应该用 `\\frac{{}}{{}}` 或 `\\div`",
+                    latex
+                ),
+                importance: CheckImportance::Warn,
+            });
         }
 
         // 检查汉字和中文标点

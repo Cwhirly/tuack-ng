@@ -242,7 +242,6 @@ pub async fn dmk(
         reporter.progress(id as u32);
     }
 
-    let _ = std::fs::remove_dir_all(std_path.parent().unwrap().join("tmp"));
     save_seed(&target_dir, seeds)?;
     reporter.completed();
 

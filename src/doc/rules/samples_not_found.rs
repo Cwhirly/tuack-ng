@@ -7,8 +7,8 @@ use markdown_ppp::ast::*;
 use regex::Regex;
 
 lazy_static! {
-    static ref SAMPLE_TEXT_PATTERN: Regex =
-        Regex::new(r"\{\{\s*sample\.text\((\d+)\)\s*\}\}").unwrap();
+    static ref SAMPLE_REF_PATTERN: Regex =
+        Regex::new(r"\{\{\s*sample\.(text|file)\((\d+)\)\s*\}\}").unwrap();
 }
 
 pub struct SamplesNotFound;
@@ -30,10 +30,11 @@ impl CheckRule for SamplesNotFound {
     ) -> Result<CheckResult> {
         let mut messages: Vec<CheckInfo> = vec![];
 
-        // 查找文档中所有的 sample.text
-        for caps in SAMPLE_TEXT_PATTERN.captures_iter(markdown_text) {
+        // 查找文档中所有的 sample.text / sample.file
+        for caps in SAMPLE_REF_PATTERN.captures_iter(markdown_text) {
             let full_match = caps.get(0).unwrap();
-            let id = caps.get(1).unwrap().as_str().parse::<u32>().unwrap_or(0);
+            let kind = caps.get(1).unwrap().as_str();
+            let id = caps.get(2).unwrap().as_str().parse::<u32>().unwrap_or(0);
             let col_num = full_match.start();
 
             // 查找对应的样本配置
@@ -43,12 +44,20 @@ impl CheckRule for SamplesNotFound {
                     messages.push(CheckInfo {
                         line: None,
                         col: Some(col_num + 1),
-                        info: format!("sample.text({}) 对应的样本配置不存在，ID 无效", id),
+                        info: format!(
+                            "sample.{}({}) 对应的样本配置不存在，ID 无效",
+                            kind, id
+                        ),
                         importance: CheckImportance::Error,
                     });
                     continue;
                 }
             };
+
+            // 只有 sample.text 会渲染文件内容，需要检查文件是否存在
+            if kind != "text" {
+                continue;
+            }
 
             let mut missing_files = Vec::new();
 

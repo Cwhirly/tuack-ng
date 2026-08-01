@@ -301,7 +301,7 @@ pub async fn main(args: DmkArgs) -> Result<()> {
         let abs = resolve(dep_path);
         let content =
             std::fs::read(&abs).with_context(|| format!("读取依赖文件失败：{}", abs.display()))?;
-        let name = dep_path.split('/').last().unwrap_or(dep_path).to_string();
+        let name = abs.file_name().unwrap_or_default().to_string_lossy().to_string();
         deps.insert(name, content);
     }
 

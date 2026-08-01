@@ -113,14 +113,13 @@ pub fn check(problem_config: &ProblemConfig) -> Result<()> {
     let checkers = get_checkers();
 
     for checker in &checkers {
+        // 每个规则先应用文本检查，再应用 AST 检查
         if checker.manifest().markdown_checker {
             debug!("正在应用文本检查器 {}", checker.manifest().name);
             let messages = checker.check_markdown(&markdown_text, problem_config)?;
             print_messages(messages, &markdown_path, checker.as_ref());
         }
-    }
 
-    for checker in &checkers {
         if checker.manifest().ast_checker {
             debug!("正在应用检查器 {}", checker.manifest().name);
             let messages = checker.check_ast(&ast, problem_config)?;
