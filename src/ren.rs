@@ -123,7 +123,8 @@ fn ren(
             subconfig: problems_to_render
                 .iter()
                 .map(|(k, v)| (k.clone(), (*v).clone()))
-                .collect(),
+                .collect::<IndexMap<_, _>>()
+                .into(),
             ..day_config.clone()
         }
     } else {

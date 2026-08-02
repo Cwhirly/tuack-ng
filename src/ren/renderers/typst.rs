@@ -119,14 +119,15 @@ impl TypstCompiler {
                 submit_filenames.push(format!("{}.{}", problem_config.name, lang_key));
             }
 
-            let point_equal = if problem_config.data.is_empty() {
+            let point_equal = if problem_config.runtime.data.is_empty() {
                 // 如果没有测试数据，默认为"是"
                 "是".to_string()
             } else {
                 // 获取第一个测试点的分数
-                let first_score = problem_config.data[0].score;
+                let first_score = problem_config.runtime.data[0].score;
                 // 检查所有测试点的分数是否都等于第一个测试点的分数
                 let all_equal = problem_config
+                    .runtime
                     .data
                     .iter()
                     .all(|data_item| data_item.score == first_score);
@@ -153,7 +154,7 @@ impl TypstCompiler {
                 .to_string(),
                 time_limit: format!("{:.1} 秒", problem_config.time_limit),
                 memory_limit: format!("{:.0}", problem_config.memory_limit),
-                testcase: problem_config.data.len().to_string(),
+                testcase: problem_config.runtime.data.len().to_string(),
                 point_equal,
                 submit_filename: submit_filenames,
             };

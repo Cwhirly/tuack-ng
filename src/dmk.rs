@@ -259,19 +259,20 @@ pub async fn main(args: DmkArgs) -> Result<()> {
         };
 
     let data_items: Vec<ExpandedDataItem> = match &args.target {
-        Target::Data => current_problem.data.clone(),
+        Target::Data => current_problem.runtime.data.clone(),
         Target::Sample => current_problem
+            .runtime
             .samples
             .iter()
             .map(|item| ExpandedDataItem {
                 id: item.id,
                 score: 0,
                 subtask: 0,
-                input: item.input_path(),
-                output: item.output_path(),
-                orig_args: item.orig_args.clone(),
+                input: item.input.clone(),
+                output: item.output.clone(),
+                orig_args: item.args.clone(),
                 args: item.args.clone(),
-                dmk: item.dmk.unwrap_or(current_problem.dmk),
+                dmk: item.dmk,
             })
             .collect(),
     };

@@ -30,15 +30,15 @@ fn arbiter_main_day(day: &ContestDayConfig, daynum: usize, main_dir: &Path) -> R
         let probnum = probnum + 1;
         info!("处理题目：{}", prob.name);
 
-        let score_per_case = if prob.data.is_empty() {
+        let score_per_case = if prob.runtime.data.is_empty() {
             0u32
         } else {
-            100 / prob.data.len() as u32
+            100 / prob.runtime.data.len() as u32
         };
 
-        if !prob.data.is_empty()
-            && prob.subtasks.len() <= 1
-            && score_per_case * prob.data.len() as u32 != 100
+        if !prob.runtime.data.is_empty()
+            && prob.runtime.subtasks.len() <= 1
+            && score_per_case * prob.runtime.data.len() as u32 != 100
         {
             msg_warn!(
                 "题目 {} 的测试点数量不是 100 的约数，分数无法均分为整数。",
@@ -84,7 +84,7 @@ fn arbiter_main_day(day: &ContestDayConfig, daynum: usize, main_dir: &Path) -> R
         ];
 
         // 复制数据文件，写 MARK
-        for (idx, case) in prob.data.iter().enumerate() {
+        for (idx, case) in prob.runtime.data.iter().enumerate() {
             let idx = idx + 1;
 
             let src_in = prob.path.join("data").join(&case.input);
@@ -104,14 +104,16 @@ fn arbiter_main_day(day: &ContestDayConfig, daynum: usize, main_dir: &Path) -> R
             })?;
 
             // 分数：packed 模式（subtask min/max）下使用 subtask 分数均分，否则均分
-            let mark = if prob.subtasks.len() > 1 {
+            let mark = if prob.runtime.subtasks.len() > 1 {
                 // 找到这个 case 所在的 subtask
                 let subtask_score = prob
+                    .runtime
                     .subtasks
                     .get(&case.subtask)
                     .map(|st| st.max_score)
                     .unwrap_or(case.score);
                 let count_in_subtask = prob
+                    .runtime
                     .subtasks
                     .get(&case.subtask)
                     .map(|st| st.items.len())

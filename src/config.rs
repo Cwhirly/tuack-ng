@@ -1,7 +1,9 @@
-use path_clean::PathClean;
+//! 配置文件数据结构
 
 use crate::config::msgs::LoadContext;
+use crate::context::CurrentLocation;
 use crate::prelude::*;
+use path_clean::PathClean;
 
 pub const CONFIG_FILE_NAME: &str = "conf.json";
 
@@ -15,11 +17,13 @@ pub mod migrate;
 pub mod msgs;
 pub mod problem;
 
-use crate::context::CurrentLocation;
-use owo_colors::OwoColorize;
+/// 标记序列化到文件
+pub struct FileView;
+/// 标记序列化到其他地方，并序列化运行时信息
+pub struct FullView;
 
-pub use self::contest::*;
-pub use self::contestday::*;
+pub use self::contest::ContestConfig;
+pub use self::contestday::ContestDayConfig;
 pub use self::problem::*;
 
 fn find_contest_config(start_path: &Path) -> Result<PathBuf> {
@@ -67,8 +71,8 @@ pub fn load_config(ctx: &mut LoadContext, path: &Path) -> Result<Option<Config>>
 
     ctx.enter();
 
-    // 使用 load_contest_config 加载主配置
-    let mut config = load_contest_config(ctx, &config_path)?;
+    // 使用 ContestConfig::load 加载主配置
+    let mut config = ContestConfig::load(ctx, &config_path)?;
 
     ctx.set_name(format!("[contest] {}", &config.name));
 
@@ -81,69 +85,74 @@ pub fn load_config(ctx: &mut LoadContext, path: &Path) -> Result<Option<Config>>
     let parent_dir = config_path.parent().context("无法获取配置文件父目录")?;
 
     // 递归加载子配置
-    for day_name in &config.subdir {
-        let day_path = parent_dir.join(day_name).join(CONFIG_FILE_NAME).clean();
-        match load_day_config(ctx, &day_path) {
-            Ok(mut dayconfig) => {
-                ctx.enter();
-                ctx.set_name(format!("[day] {}", &dayconfig.name));
+    for day_name in config.subdir.clone() {
+        let day_path = parent_dir.join(&day_name).join(CONFIG_FILE_NAME).clean();
 
-                if canonicalize_path.starts_with(day_path.parent().unwrap()) {
-                    location = CurrentLocation::Day(day_name.to_string());
-                }
-
-                // 递归加载题目配置
-                let day_parent_dir = day_path.parent().context("无法获取配置文件父目录")?;
-                for problem_name in &dayconfig.subdir {
-                    let problem_path = day_parent_dir
-                        .join(problem_name)
-                        .join(CONFIG_FILE_NAME)
-                        .clean();
-                    match load_problem_config(ctx, &problem_path) {
-                        Ok(mut problemconfig) => {
-                            ctx.enter();
-                            ctx.set_name(format!("[problem] {}", &problemconfig.name));
-                            // TODO：总觉得不对劲
-                            problemconfig.use_pretest =
-                                dayconfig.use_pretest.or(config.use_pretest);
-                            problemconfig.noi_style = dayconfig.noi_style.or(config.noi_style);
-                            problemconfig.file_io =
-                                if problemconfig.problem_type == ProblemType::Interactive {
-                                    // 交互强制使用 Stdio
-                                    Some(false)
-                                } else {
-                                    None
-                                }
-                                .or(dayconfig.file_io)
-                                .or(config.file_io);
-
-                            if canonicalize_path.starts_with(problem_path.parent().unwrap()) {
-                                location = CurrentLocation::Problem(
-                                    day_name.to_string(),
-                                    problem_name.to_string(),
-                                );
-                            }
-
-                            dayconfig
-                                .subconfig
-                                .insert(problem_name.to_string(), problemconfig);
-
-                            ctx.ret(); // problem
-                        }
-                        Err(e) => {
-                            ctx.emit_error(format!("题目 {} 加载失败：{}", problem_name.cyan(), e));
-                        }
-                    }
-                }
-
-                config.subconfig.insert(day_name.to_string(), dayconfig);
-
-                ctx.ret(); // day
-            }
+        ctx.enter();
+        let mut dayconfig = match ContestDayConfig::load(ctx, &day_path) {
+            Ok(config) => config,
             Err(e) => {
+                ctx.ret();
                 ctx.emit_error(format!("比赛日 {} 加载失败：{}", day_name.cyan(), e));
+                continue;
             }
+        };
+
+        ctx.set_name(format!("[day] {}", &dayconfig.name));
+
+        if canonicalize_path.starts_with(day_path.parent().unwrap()) {
+            location = CurrentLocation::Day(day_name.to_string());
         }
+
+        // 递归加载题目配置
+        let day_parent_dir = day_path.parent().context("无法获取配置文件父目录")?;
+        for problem_name in dayconfig.subdir.clone() {
+            let problem_path = day_parent_dir
+                .join(&problem_name)
+                .join(CONFIG_FILE_NAME)
+                .clean();
+
+            ctx.enter();
+            let mut problemconfig = match ProblemConfig::load(ctx, &problem_path) {
+                Ok(config) => config,
+                Err(e) => {
+                    ctx.ret();
+                    ctx.emit_error(format!("题目 {} 加载失败：{}", problem_name.cyan(), e));
+                    continue;
+                }
+            };
+
+            ctx.set_name(format!("[problem] {}", &problemconfig.name));
+            // TODO：总觉得不对劲
+            problemconfig.use_pretest = dayconfig.use_pretest.or(config.use_pretest);
+            problemconfig.noi_style = dayconfig.noi_style.or(config.noi_style);
+            problemconfig.file_io = if problemconfig.problem_type == ProblemType::Interactive {
+                // 交互强制使用 Stdio
+                Some(false)
+            } else {
+                None
+            }
+            .or(dayconfig.file_io)
+            .or(config.file_io);
+
+            if canonicalize_path.starts_with(problem_path.parent().unwrap()) {
+                location = CurrentLocation::Problem(day_name.to_string(), problem_name.to_string());
+            }
+
+            dayconfig
+                .subconfig
+                .inner_mut()
+                .insert(problem_name.to_string(), problemconfig);
+
+            ctx.ret(); // problem
+        }
+
+        config
+            .subconfig
+            .inner_mut()
+            .insert(day_name.to_string(), dayconfig);
+
+        ctx.ret(); // day
     }
 
     ctx.ret(); // contest
@@ -160,7 +169,7 @@ pub fn save_config(config: &ContestConfig, base_path: &Path) -> Result<()> {
 
     // 保存主配置文件
     let main_config_path = base_path.join(CONFIG_FILE_NAME);
-    let main_config_json = save_contest_config(config)?;
+    let main_config_json = config.save()?;
     fs::write(&main_config_path, main_config_json)?;
 
     // 保存每个比赛日的配置
@@ -173,7 +182,7 @@ pub fn save_config(config: &ContestConfig, base_path: &Path) -> Result<()> {
         }
 
         let day_config_path = day_path.join(CONFIG_FILE_NAME);
-        let day_config_json = save_day_config(day_config)?;
+        let day_config_json = day_config.save()?;
         fs::write(&day_config_path, day_config_json)?;
 
         // 保存每个题目的配置
@@ -186,7 +195,7 @@ pub fn save_config(config: &ContestConfig, base_path: &Path) -> Result<()> {
             }
 
             let problem_config_path = problem_path.join(CONFIG_FILE_NAME);
-            let problem_config_json = save_problem_config(problem_config)?;
+            let problem_config_json = problem_config.save()?;
             fs::write(&problem_config_path, problem_config_json)?;
         }
     }

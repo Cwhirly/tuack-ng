@@ -1,6 +1,6 @@
 use crate::tuack_lib::doc::rules::*;
 use crate::{
-    config::{CONFIG_FILE_NAME, save_problem_config},
+    config::CONFIG_FILE_NAME,
     doc::rules::*,
     prelude::*,
 };
@@ -62,7 +62,7 @@ pub fn format(problem_config: &ProblemConfig) -> Result<()> {
 
     fs::write(&markdown_path, markdown_text)?;
 
-    let problem_config_text = save_problem_config(&problem_config)?;
+    let problem_config_text = problem_config.save()?;
 
     fs::write(
         problem_config.path.join(CONFIG_FILE_NAME),

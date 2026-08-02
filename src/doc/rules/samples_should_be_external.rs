@@ -151,7 +151,6 @@ impl SamplesShouldBeExternal {
                         id: index as u32,
                         input: None,
                         output: None,
-                        orig_args: IndexMap::new(),
                         args: IndexMap::new(),
                         dmk: None,
                     },

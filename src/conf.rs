@@ -1,4 +1,4 @@
-use crate::config::{CONFIG_FILE_NAME, save_config, save_day_config};
+use crate::config::{CONFIG_FILE_NAME, save_config};
 use crate::prelude::*;
 use chrono::Datelike;
 use chrono::Timelike;
@@ -25,7 +25,6 @@ fn add_minutes(time: [u32; 6], minutes: i64) -> Result<[u32; 6]> {
 
 use crate::{
     Subcommand,
-    config::save_problem_config,
     context::{CurrentLocation, gctx},
 };
 use clap::Args;
@@ -98,7 +97,7 @@ fn conf_title(args: &ConfValuesArgs) -> Result<()> {
             }
             for (i, (_prob_name, prob_config)) in day_config.subconfig.iter_mut().enumerate() {
                 prob_config.title = args.value[i].clone();
-                let conf_str = save_problem_config(prob_config)?;
+                let conf_str = prob_config.save()?;
                 fs::write(prob_config.path.join(CONFIG_FILE_NAME), conf_str)?;
             }
             Ok(())
@@ -115,7 +114,7 @@ fn conf_title(args: &ConfValuesArgs) -> Result<()> {
             }
             for (i, (_day_name, day_config)) in config.subconfig.iter_mut().enumerate() {
                 day_config.title = args.value[i].clone();
-                let conf_str = save_day_config(day_config)?;
+                let conf_str = day_config.save()?;
                 fs::write(day_config.path.join(CONFIG_FILE_NAME), conf_str)?;
             }
             Ok(())
@@ -147,7 +146,7 @@ fn conf_time(args: &ConfValuesArgs) -> Result<()> {
             }
             for (i, (_prob_name, prob_config)) in day_config.subconfig.iter_mut().enumerate() {
                 prob_config.time_limit = args.value[i].clone().parse()?;
-                let conf_str = save_problem_config(prob_config)?;
+                let conf_str = prob_config.save()?;
                 fs::write(prob_config.path.join(CONFIG_FILE_NAME), conf_str)?;
             }
             Ok(())
@@ -183,7 +182,7 @@ fn conf_length(args: &ConfValuesArgs) -> Result<()> {
                 } else {
                     msg_warn!("比赛日 {} 没有配置比赛开始时间，跳过", day_name);
                 }
-                let conf_str = save_day_config(day_config)?;
+                let conf_str = day_config.save()?;
                 fs::write(day_config.path.join(CONFIG_FILE_NAME), conf_str)?;
             }
             Ok(())
@@ -215,15 +214,20 @@ fn conf_custom(args: &ConfCustomArgs) -> Result<()> {
                 bail!("提供的键值数量与题目数量不匹配");
             }
             for (i, (_prob_name, prob_config)) in day_config.subconfig.iter_mut().enumerate() {
-                let mut json = serde_json::to_value(&prob_config).unwrap();
+                let mut json = serde_json::to_value(&AsSerde::<ProblemConfig, FileView>::new(
+                    prob_config.clone(),
+                ))
+                .unwrap();
                 let value = serde_json::from_str::<serde_json::Value>(&args.value[i])
                     .context("值解析失败")?;
                 json.as_object_mut()
                     .unwrap()
                     .insert(args.key.clone(), value);
-                let updated_config = serde_json::from_value::<ProblemConfig>(json)
-                    .context("json 序列化失败，可能是因为提供了无效的值")?;
-                let conf_str = save_problem_config(&updated_config)?;
+                let updated_config =
+                    serde_json::from_value::<AsSerde<ProblemConfig, FileView>>(json)
+                        .context("json 序列化失败，可能是因为提供了无效的值")?
+                        .into_inner();
+                let conf_str = updated_config.save()?;
                 fs::write(prob_config.path.join(CONFIG_FILE_NAME), conf_str)?;
             }
             Ok(())
@@ -239,15 +243,19 @@ fn conf_custom(args: &ConfCustomArgs) -> Result<()> {
                 bail!("提供的键值数量与比赛日数量不匹配");
             }
             for (i, (_day_name, day_config)) in config.subconfig.iter_mut().enumerate() {
-                let mut json = serde_json::to_value(&day_config)?;
+                let mut json = serde_json::to_value(&AsSerde::<ContestDayConfig, FileView>::new(
+                    day_config.clone(),
+                ))?;
                 let value = serde_json::from_str::<serde_json::Value>(&args.value[i])
                     .context("值解析失败")?;
                 json.as_object_mut()
                     .unwrap()
                     .insert(args.key.clone(), value);
-                let updated_config = serde_json::from_value::<ContestDayConfig>(json)
-                    .context("json 序列化失败，可能是因为提供了无效的值")?;
-                let conf_str = save_day_config(&updated_config)?;
+                let updated_config =
+                    serde_json::from_value::<AsSerde<ContestDayConfig, FileView>>(json)
+                        .context("json 序列化失败，可能是因为提供了无效的值")?
+                        .into_inner();
+                let conf_str = updated_config.save()?;
                 fs::write(day_config.path.join(CONFIG_FILE_NAME), conf_str)?;
             }
             Ok(())

@@ -260,19 +260,20 @@ pub async fn test_problem(
     };
 
     let data_items: Vec<ExpandedDataItem> = match target {
-        Target::Data => problem_config.data.clone(),
+        Target::Data => problem_config.runtime.data.clone(),
         Target::Sample => problem_config
+            .runtime
             .samples
             .iter()
             .map(|item| ExpandedDataItem {
                 id: item.id,
                 score: 1,
                 subtask: 0,
-                input: item.input_path(),
-                output: item.output_path(),
-                orig_args: item.orig_args.clone(),
+                input: item.input.clone(),
+                output: item.output.clone(),
+                orig_args: item.args.clone(),
                 args: item.args.clone(),
-                dmk: item.dmk.unwrap_or(problem_config.dmk),
+                dmk: item.dmk,
             })
             .collect(),
     };
@@ -468,6 +469,7 @@ pub async fn test_problem(
             IndexMap::from([(0, vec![])])
         } else {
             problem_config
+                .runtime
                 .subtasks
                 .keys()
                 .map(|id| (*id, vec![]))
@@ -588,7 +590,7 @@ pub async fn test_problem(
                     },
                 )])
             } else {
-                problem_config.subtasks.clone()
+                problem_config.runtime.subtasks.clone()
             };
             for (id, subtask) in &scoring_subtasks {
                 let scores = &subtask_scores[id];
@@ -634,7 +636,7 @@ pub async fn test_problem(
                     },
                 )])
             } else {
-                problem_config.subtasks.clone()
+                problem_config.runtime.subtasks.clone()
             };
             let max_possible: u32 = scoring_subtasks.iter().map(|task| task.1.max_score).sum();
             let problem_result = ProblemTestResult {

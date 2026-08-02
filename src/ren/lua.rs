@@ -52,12 +52,21 @@ fn build_config(
     contest: &ContestConfig,
 ) -> mlua::Result<mlua::Table> {
     lua.create_table_from(vec![
-        ("contest", lua.to_value(contest)?),
-        ("day", lua.to_value(day)?),
-        ("problem", lua.to_value(problem)?),
+        (
+            "contest",
+            lua.to_value(&AsSerde::<ContestConfig, FullView>::new(contest.clone()))?,
+        ),
+        (
+            "day",
+            lua.to_value(&AsSerde::<ContestDayConfig, FullView>::new(day.clone()))?,
+        ),
+        (
+            "problem",
+            lua.to_value(&AsSerde::<ProblemConfig, FullView>::new(problem.clone()))?,
+        ),
         ("sample_cases", {
             let samples = lua
-                .to_value(&problem.samples)?
+                .to_value(&problem.runtime.samples)?
                 .as_table()
                 .unwrap()
                 .to_owned();
@@ -72,7 +81,7 @@ fn build_config(
         }),
         ("data_cases", {
             let data_cases = lua
-                .to_value(&problem.orig_data)?
+                .to_value(&problem.runtime.inherited_data)?
                 .as_table()
                 .unwrap()
                 .to_owned();

@@ -1,11 +1,5 @@
 use crate::config::SingleDataItem;
-use crate::config::load_contest_config;
-use crate::config::load_day_config;
-use crate::config::load_problem_config;
 use crate::config::msgs::LoadContext;
-use crate::config::save_contest_config;
-use crate::config::save_day_config;
-use crate::config::save_problem_config;
 use crate::prelude::*;
 use crate::utils::filesystem::copy_dir_recursive;
 use clap::Args;
@@ -98,14 +92,14 @@ fn gen_contest(args: GenStatementArgs) -> Result<()> {
         copy_dir_recursive(&scaffold_path, current_dir.join(contest_name))?;
 
         let mut _ctx = LoadContext::new();
-        let mut contest_json: ContestConfig = load_contest_config(
+        let mut contest_json: ContestConfig = ContestConfig::load(
             &mut _ctx,
             &current_dir.join(contest_name).join(CONFIG_FILE_NAME),
         )?;
 
         contest_json.name = contest_name.to_string();
 
-        let updated_content = save_contest_config(&contest_json)?;
+        let updated_content = contest_json.save()?;
         std::fs::write(
             current_dir.join(contest_name).join(CONFIG_FILE_NAME),
             updated_content,
@@ -143,14 +137,14 @@ fn gen_day(args: GenStatementArgs) -> Result<()> {
         copy_dir_recursive(&scaffold_path, current_dir.join(day_name))?;
 
         let mut _ctx = LoadContext::new();
-        let mut day_json: ContestDayConfig = load_day_config(
+        let mut day_json: ContestDayConfig = ContestDayConfig::load(
             &mut _ctx,
             &current_dir.join(day_name).join(CONFIG_FILE_NAME),
         )?;
 
         day_json.name = day_name.to_string();
 
-        let updated_content = save_day_config(&day_json)?;
+        let updated_content = day_json.save()?;
         std::fs::write(
             current_dir.join(day_name).join(CONFIG_FILE_NAME),
             updated_content,
@@ -202,14 +196,14 @@ fn gen_problem(args: GenStatementArgs) -> Result<()> {
         copy_dir_recursive(&scaffold_path, current_dir.join(problem_name))?;
 
         let mut _ctx = LoadContext::new();
-        let mut problem_json: ProblemConfig = load_problem_config(
+        let mut problem_json: ProblemConfig = ProblemConfig::load(
             &mut _ctx,
             &current_dir.join(problem_name).join(CONFIG_FILE_NAME),
         )?;
 
         problem_json.name = problem_name.to_string();
 
-        let updated_content = save_problem_config(&problem_json)?;
+        let updated_content = problem_json.save()?;
         std::fs::write(
             current_dir.join(problem_name).join(CONFIG_FILE_NAME),
             updated_content,
@@ -375,11 +369,11 @@ fn gen_data(args: GenConfirmArgs) -> Result<()> {
 
             let mut _ctx = LoadContext::new();
             let mut now_problem =
-                load_problem_config(&mut _ctx, &problem.path.join(CONFIG_FILE_NAME))?;
-            now_problem.orig_data = data;
-            now_problem.orig_subtasks = subtasks;
+                ProblemConfig::load(&mut _ctx, &problem.path.join(CONFIG_FILE_NAME))?;
+            now_problem.data = data;
+            now_problem.subtasks = subtasks;
 
-            let updated_content = save_problem_config(&now_problem)?;
+            let updated_content = now_problem.save()?;
             fs::write(problem.path.join(CONFIG_FILE_NAME), updated_content)?;
         }
     }
@@ -442,7 +436,6 @@ fn gen_sample(args: GenConfirmArgs) -> Result<()> {
                     id: id as u32 + 1,
                     input: Some(format!("{}.in", name)),
                     output: Some(format!("{}.ans", name)),
-                    orig_args: IndexMap::new(),
                     args: IndexMap::new(),
                     dmk: None,
                 })
@@ -450,10 +443,10 @@ fn gen_sample(args: GenConfirmArgs) -> Result<()> {
 
             let mut _ctx = LoadContext::new();
             let mut now_problem =
-                load_problem_config(&mut _ctx, &problem.path.join(CONFIG_FILE_NAME))?;
+                ProblemConfig::load(&mut _ctx, &problem.path.join(CONFIG_FILE_NAME))?;
             now_problem.samples = samples;
 
-            let updated_content = save_problem_config(&now_problem)?;
+            let updated_content = now_problem.save()?;
             fs::write(problem.path.join(CONFIG_FILE_NAME), updated_content)?;
         }
     }
@@ -557,10 +550,10 @@ fn gen_code(args: GenConfirmArgs) -> Result<()> {
 
             let mut _ctx = LoadContext::new();
             let mut now_problem =
-                load_problem_config(&mut _ctx, &problem.path.join(CONFIG_FILE_NAME))?;
+                ProblemConfig::load(&mut _ctx, &problem.path.join(CONFIG_FILE_NAME))?;
             now_problem.tests = tests;
 
-            let updated_content = save_problem_config(&now_problem)?;
+            let updated_content = now_problem.save()?;
             fs::write(problem.path.join(CONFIG_FILE_NAME), updated_content)?;
         }
     }

@@ -267,11 +267,11 @@ pub fn render_template(
 
     // 创建上下文
     let ctx = context! {
-        problem => problem,
-        day => day,
-        contest => contest,
-        data_cases => problem.orig_data,
-        sample_cases => problem.samples,
+        problem => AsSerde::<ProblemConfig, FullView>::new(problem.clone()),
+        day => AsSerde::<ContestDayConfig, FullView>::new(day.clone()),
+        contest => AsSerde::<ContestConfig, FullView>::new(contest.clone()),
+        data_cases => problem.runtime.inherited_data,
+        sample_cases => problem.runtime.samples,
 
         sample => sample,
         tools => tools,

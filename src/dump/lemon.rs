@@ -80,7 +80,7 @@ pub fn main(day: &ContestDayConfig) -> Result<()> {
     for (_, prob) in &day.subconfig {
         fs::create_dir(output_dir.join("data").join(&prob.name))?;
 
-        for case in &prob.data {
+        for case in &prob.runtime.data {
             copy_case_file(prob, &output_dir, &case.input, &prob.name, case.id, "in")?;
             copy_case_file(prob, &output_dir, &case.output, &prob.name, case.id, "ans")?;
         }
@@ -89,12 +89,12 @@ pub fn main(day: &ContestDayConfig) -> Result<()> {
         let time_limit = (prob.time_limit * 1000.0) as u32;
         let memory_limit = prob.memory_limit.as_mib() as u32;
 
-        for task in prob.subtasks.values() {
+        for task in prob.runtime.subtasks.values() {
             let mut input_files: Vec<String> = Vec::new();
             let mut output_files: Vec<String> = Vec::new();
 
             for &idx in &task.items {
-                let case = &prob.data[idx];
+                let case = &prob.runtime.data[idx];
                 input_files.push(case_rel_path(&prob.name, case.id, "in"));
                 output_files.push(case_rel_path(&prob.name, case.id, "ans"));
             }
@@ -102,7 +102,7 @@ pub fn main(day: &ContestDayConfig) -> Result<()> {
             match task.policy {
                 ScorePolicy::Sum => {
                     for (i, &idx) in task.items.iter().enumerate() {
-                        let case = &prob.data[idx];
+                        let case = &prob.runtime.data[idx];
                         cases.push(LemonCase {
                             full_score: case.score,
                             time_limit,
