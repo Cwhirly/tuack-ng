@@ -177,11 +177,36 @@ Tuack-NG（`Tuack New Generation`）是一套完整的用于辅助 OI/ACM 竞赛
 
 <!-- ALL-CONTRIBUTORS-LIST:END -->
 <!-- autocorrect-enable -->
+
+- [Tuack](https://github.com/mulab11/tuack) —— 本项目的设计思想来源，并借鉴了部分代码与接口风格。
+- [CNOI Statement Generator](https://github.com/Mr-Python-in-China/cnoi-statement-generator) —— 本项目的 NOI 模板来自此项目。
+
 <!--markdownlint-disable MD001 MD033 MD041 MD051-->
 
 ## 许可证
 
+Copyright (C) 2025-2026 Tuack-NG Develop Team.
+
 本项目以 Affero General Public License 3.0 或更高版本获得许可。
+
+---
+
+Tuack-NG 的部分代码衍生自 [Tuack](https://gitee.com/mulab/oi_tools)（GPL-3.0），原作者：Chenxu Min, Zhang Ruizhe, Liu Xiaoyi, Chen Junkun, Chen Shengqi, Luo Lingxiao, Cheng Yuxuan。原 LICENSE 中的版权声明原样保留如下：
+
+<!-- autocorrect-disable -->
+```txt
+tuack
+Copyright (C) 2018  publish
+```
+<!-- autocorrect-enable -->
+
+移植部分保留原 GPL-3.0 许可，并作为 AGPL-3.0 项目的组成部分分发。
+
+---
+
+Tuack-NG 的 NOI 模板衍生自 [CNOI Statement Generator](https://github.com/Mr-Python-in-China/cnoi-statement-generator)（AGPL-3.0）。
+
+其模板亦源自 Tuack（GPL-3.0），详见其 README。
 
 ## Stars 历史
 
