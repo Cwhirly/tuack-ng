@@ -69,6 +69,9 @@ pub struct ProblemConfig {
     /// Checker 配置
     #[serde(file(default))]
     pub checker: Option<CheckerConfigPair>,
+    /// Validator 配置
+    #[serde(file(default))]
+    pub validator: Option<ValidatorConfigPair>,
 
     /// 是否有 pretest，目前没有用途
     #[serde(file(skip))]
@@ -299,6 +302,9 @@ pub struct GeneratorConfig {
     /// 依赖文件列表（相对于题目目录）
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub deps: Vec<String>,
+    /// 生成输入后是否进行校验
+    #[serde(default)]
+    pub validate: bool,
 }
 
 /// 生成器配置对（data / sample）
@@ -332,6 +338,28 @@ pub struct CheckerConfigPair {
     /// 样例数据 Checker，为 null 时使用 data
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub sample: Option<CheckerConfig>,
+}
+
+/// Validator 配置
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub struct ValidatorConfig {
+    /// Validator 源文件路径（相对于题目目录）
+    pub source: String,
+    /// 依赖文件列表（相对于题目目录）
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub deps: Vec<String>,
+}
+
+/// Validator 配置对（data / sample）
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub struct ValidatorConfigPair {
+    /// 正式数据 Validator
+    pub data: ValidatorConfig,
+    /// 样例数据 Validator，为 null 时使用 data
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub sample: Option<ValidatorConfig>,
 }
 
 /// 样例配置（文件格式，静态）
