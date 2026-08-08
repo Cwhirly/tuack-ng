@@ -28,19 +28,25 @@ impl Checker for PrebuiltChecker {
 
     fn validate(
         &self,
-        input: &Path,
+        input: &[u8],
         output: &[u8],
-        answer: &Path,
+        answer: &[u8],
     ) -> Result<(JudgeResult, String)> {
+        let input_path = NamedTempFile::with_prefix("tuack-ng-checker-in-")?;
+        fs::write(&input_path, input)?;
+
         let output_path = NamedTempFile::with_prefix("tuack-ng-checker-out-")?;
         fs::write(&output_path, output)?;
+
+        let answer_path = NamedTempFile::with_prefix("tuack-ng-checker-ans-")?;
+        fs::write(&answer_path, answer)?;
 
         let res_path = NamedTempFile::with_prefix("tuack-ng-checker-res-")?;
 
         let _status = Command::new(&self.binary)
-            .arg(input)
+            .arg(input_path.path())
             .arg(output_path.path())
-            .arg(answer)
+            .arg(answer_path.path())
             .arg(res_path.path())
             .arg("-appes")
             .stderr(Stdio::null())

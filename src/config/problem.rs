@@ -1,3 +1,5 @@
+use crate::data::fs::FsTestData;
+use crate::tuack_lib::data::TestData;
 use crate::tuack_lib::utils::testlib::Arg;
 use crate::{
     config::{CONFIG_MIN_VERSION, CONFIG_VERSION, migrate::base::MIGRATERS, msgs::LoadContext},
@@ -289,6 +291,28 @@ impl ProblemConfig {
             ProblemConfig,
             FileView,
         >::new(self.clone()))?)
+    }
+
+    /// 构造正式数据的 [`TestData`] 列表（从 `data/` 读取）。
+    pub fn test_data(&self) -> Vec<Box<dyn TestData + '_>> {
+        self.runtime
+            .data
+            .iter()
+            .map(|item| -> Box<dyn TestData + '_> {
+                Box::new(FsTestData::from_data(self.path.join("data"), item))
+            })
+            .collect()
+    }
+
+    /// 构造样例数据的 [`TestData`] 列表（从 `sample/` 读取）。
+    pub fn sample_data(&self) -> Vec<Box<dyn TestData + '_>> {
+        self.runtime
+            .samples
+            .iter()
+            .map(|item| -> Box<dyn TestData + '_> {
+                Box::new(FsTestData::from_sample(self.path.join("sample"), item))
+            })
+            .collect()
     }
 }
 

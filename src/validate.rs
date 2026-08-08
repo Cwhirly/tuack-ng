@@ -5,6 +5,7 @@ use std::time::Duration;
 
 use crate::config::ExpandedDataItem;
 use crate::prelude::*;
+use crate::tuack_lib::data::TestData;
 use crate::tuack_lib::utils::testlib::{Validator, ValidatorResult};
 use crate::utils::validators::cpp::CppValidator;
 
@@ -83,12 +84,7 @@ async fn validate_problem(
     object: &str,
     in_problem: bool,
 ) -> Result<()> {
-    let data_dir = match target {
-        Target::Data => "data",
-        Target::Sample => "sample",
-    };
-
-    let data_items: Vec<ExpandedDataItem> = match target {
+    let selected: Vec<ExpandedDataItem> = match target {
         Target::Data => problem_config.runtime.data.clone(),
         Target::Sample => problem_config
             .samples
@@ -106,7 +102,16 @@ async fn validate_problem(
             .collect(),
     };
 
-    let data_items = crate::utils::test_object::parse_test_object(object, &data_items)?;
+    let selected = crate::utils::test_object::parse_test_object(object, &selected)?;
+
+    let data_items: Vec<Box<dyn TestData + '_>> = match target {
+        Target::Data => problem_config.test_data(),
+        Target::Sample => problem_config.sample_data(),
+    };
+    let data_items = data_items
+        .into_iter()
+        .filter(|item| selected.iter().any(|sel| sel.id == item.id()))
+        .collect::<Vec<_>>();
 
     let validator = match compile_validator(problem_config, target) {
         Ok(v) => v,
@@ -131,16 +136,14 @@ async fn validate_problem(
     );
 
     let mut failed = 0;
-    for (idx, case) in data_items.iter().enumerate() {
-        let input_path = problem_config.path.join(data_dir).join(&case.input);
-
-        let result = match tokio::fs::read(&input_path).await {
+    for (idx, data_item) in data_items.iter().enumerate() {
+        let result = match data_item.input().await {
             Ok(input_bytes) => validator.validate(&input_bytes),
             Err(e) => {
                 msg_item!(
                     "FAIL".red().bold(),
                     "测试点 {} 读取输入失败：{}",
-                    case.id.to_string().bold(),
+                    data_item.id().to_string().bold(),
                     e
                 );
                 failed += 1;
@@ -154,14 +157,14 @@ async fn validate_problem(
                 msg_item!(
                     "OK".green(),
                     "测试点 {} 输入合法",
-                    case.id.to_string().bold()
+                    data_item.id().to_string().bold()
                 );
             }
             Ok(ValidatorResult::Invalid(message)) => {
                 msg_item!(
                     "FAIL".red().bold(),
                     "测试点 {} 输入不合法",
-                    case.id.to_string().bold()
+                    data_item.id().to_string().bold()
                 );
                 if !message.is_empty() {
                     msg_error!("{}", message);
@@ -172,7 +175,7 @@ async fn validate_problem(
                 msg_item!(
                     "FAIL".red().bold(),
                     "测试点 {} Validator 执行失败：{}",
-                    case.id.to_string().bold(),
+                    data_item.id().to_string().bold(),
                     e
                 );
                 failed += 1;

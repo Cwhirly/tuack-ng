@@ -8,10 +8,10 @@ use evalexpr::eval_boolean;
 use indicatif::ProgressBar;
 use owo_colors::OwoColorize;
 
-use crate::config::ExpandedDataItem;
 use crate::config::ScorePolicy;
 use crate::config::SubtaskItem;
 use crate::prelude::*;
+use crate::tuack_lib::data::TestData;
 use crate::tuack_lib::utils::testlib::Checker;
 use crate::tuack_lib::utils::testlib::JudgeResult;
 use crate::utils::checkers::{cpp::CppChecker, prebuilt::PrebuiltChecker};
@@ -83,15 +83,13 @@ pub struct TestArgs {
 async fn run_test_case(
     runner: &mut Box<dyn Runner>,
     problem_config: &ProblemConfig,
-    case: &ExpandedDataItem,
-    data_dir: &str,
+    data: &dyn TestData,
     checker: Option<&dyn Checker>,
 ) -> Result<(TestCaseStatus, Option<Duration>, Option<ByteSize>)> {
     let problem_name = &problem_config.name;
     let file_io = problem_config.file_io.unwrap_or(true);
-    let input_path = problem_config.path.join(data_dir).join(&case.input);
 
-    let input_bytes = tokio::fs::read(&input_path).await?;
+    let input_bytes = data.input().await?;
     runner.set_input(input_bytes);
 
     if file_io {
@@ -111,9 +109,7 @@ async fn run_test_case(
     let run_result = runner.execute().await?;
 
     let case_status = match run_result.status {
-        RunStatus::Success => {
-            validate_output(&run_result.output, problem_config, case, data_dir, checker)?
-        }
+        RunStatus::Success => validate_output(&run_result.output, data, checker).await?,
         RunStatus::NonZeroExit(_) => TestCaseStatus::RE,
         RunStatus::TimeLimitExceeded => TestCaseStatus::TLE,
         RunStatus::MemoryLimitExceeded => TestCaseStatus::MLE,
@@ -127,22 +123,20 @@ async fn run_test_case(
     ))
 }
 
-fn validate_output(
+async fn validate_output(
     output: &[u8],
-    problem_config: &ProblemConfig,
-    case: &ExpandedDataItem,
-    data_dir: &str,
+    data: &dyn TestData,
     checker: Option<&dyn Checker>,
 ) -> Result<TestCaseStatus> {
-    let input_path = problem_config.path.join(data_dir).join(&case.input);
-    let answer_path = problem_config.path.join(data_dir).join(&case.output);
-
     if output.is_empty() {
         return Ok(TestCaseStatus::WA);
     }
 
+    let input = data.input().await?;
+    let answer = data.answer().await?;
+
     let result = match checker {
-        Some(chk) => chk.validate(&input_path, output, &answer_path),
+        Some(chk) => chk.validate(&input, output, &answer),
         None => {
             let default_binary = gctx()
                 .assets_dirs
@@ -158,7 +152,7 @@ fn validate_output(
                 })
                 .context("Checker 文件不存在")?;
             let pchk = PrebuiltChecker::new(default_binary);
-            pchk.validate(&input_path, output, &answer_path)
+            pchk.validate(&input, output, &answer)
         }
     };
 
@@ -254,28 +248,9 @@ pub async fn test_problem(
     target: Target,
     in_problem: bool,
 ) -> Result<()> {
-    let data_dir = match target {
-        Target::Data => "data",
-        Target::Sample => "sample",
-    };
-
-    let data_items: Vec<ExpandedDataItem> = match target {
-        Target::Data => problem_config.runtime.data.clone(),
-        Target::Sample => problem_config
-            .runtime
-            .samples
-            .iter()
-            .map(|item| ExpandedDataItem {
-                id: item.id,
-                score: 1,
-                subtask: 0,
-                input: item.input.clone(),
-                output: item.output.clone(),
-                orig_args: item.args.clone(),
-                args: item.args.clone(),
-                dmk: item.dmk,
-            })
-            .collect(),
+    let data_items: Vec<Box<dyn TestData + '_>> = match target {
+        Target::Data => problem_config.test_data(),
+        Target::Sample => problem_config.sample_data(),
     };
 
     let is_sample = matches!(target, Target::Sample);
@@ -496,15 +471,14 @@ pub async fn test_problem(
 
             case_test_pb.set_message(format!("运行测试点：{}/{}", 1, data_items.len()));
 
-            for case in &data_items {
+            for data_item in &data_items {
                 case_count += 1;
-                info!("运行测试点：{}", case.id);
+                info!("运行测试点：{}", data_item.id());
 
                 let run_result = run_test_case(
                     &mut runner,
                     problem_config,
-                    case,
-                    data_dir,
+                    data_item.as_ref(),
                     checker.as_deref(),
                 )
                 .await?;
@@ -512,22 +486,22 @@ pub async fn test_problem(
                 info!("测试点结果：{:?}", case_status);
 
                 let earned_score = match case_status {
-                    TestCaseStatus::AC => case.score,
+                    TestCaseStatus::AC => data_item.score(),
                     TestCaseStatus::PC(partial) => {
-                        ((partial / 100.0) * (case.score as f64)).round() as u32
+                        ((partial / 100.0) * (data_item.score() as f64)).round() as u32
                     }
                     _ => 0,
                 };
                 subtask_scores
-                    .get_mut(&case.subtask)
+                    .get_mut(&data_item.subtask())
                     .context("不存在指定的 Subtask")?
                     .push(earned_score);
 
                 individual_results.push(IndividualTestCaseResult {
-                    test_case_id: case.id,
+                    test_case_id: data_item.id(),
                     status: case_status,
                     score: earned_score,
-                    max_score: case.score,
+                    max_score: data_item.score(),
                     time: match run_result.1 {
                         Some(duration) => format_duration(duration),
                         None => "N/A".to_string(),
@@ -554,7 +528,7 @@ pub async fn test_problem(
                 msg_item!(
                     status_str.clone().bold(),
                     "测试点 {}  | {} | {}",
-                    case.id.to_string().bold(),
+                    data_item.id().to_string().bold(),
                     match run_result.1 {
                         Some(duration) => format_duration(duration),
                         None => "N/A".to_string(),
@@ -571,7 +545,7 @@ pub async fn test_problem(
                     "运行测试点：{}/{} | #{} {}",
                     case_count + 1,
                     data_items.len(),
-                    case.id,
+                    data_item.id(),
                     status_str
                 ));
                 case_test_pb.inc(1);
@@ -645,7 +619,7 @@ pub async fn test_problem(
                     test_case_id: 0,
                     status: TestCaseStatus::CE,
                     score: 0,
-                    max_score: data_items.iter().map(|case| case.score).sum(),
+                    max_score: data_items.iter().map(|data| data.score()).sum(),
                     time: "N/A".to_string(),
                     memory: "N/A".to_string(),
                 }],
@@ -663,7 +637,7 @@ pub async fn test_problem(
         info!(
             "总得分：{}/{}",
             total_score,
-            data_items.iter().map(|case| case.score).sum::<u32>()
+            data_items.iter().map(|data| data.score()).sum::<u32>()
         );
 
         if target == Target::Data {

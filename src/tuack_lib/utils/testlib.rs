@@ -29,7 +29,7 @@ pub enum JudgeResult {
 /// Checker（SPJ）
 pub trait Checker: Send {
     fn prepare(&mut self) -> Result<()>;
-    fn validate(&self, input: &Path, output: &[u8], answer: &Path)
+    fn validate(&self, input: &[u8], output: &[u8], answer: &[u8])
     -> Result<(JudgeResult, String)>;
 }
 
