@@ -33,7 +33,10 @@
           overlays = [ (import rust-overlay) ];
         };
 
-        rustToolchain = pkgs.rust-bin.stable.latest.default;
+        rustToolchain = pkgs.rust-bin.stable.latest.default.override {
+          extensions = [ "rust-src" ];
+        };
+
         craneLib = (crane.mkLib pkgs).overrideToolchain rustToolchain;
         lib = pkgs.lib;
 
@@ -73,7 +76,7 @@
             mkdir -p $out/share/tuack-ng
             cp -r assets/* $out/share/tuack-ng/
 
-            # 我们使用系统的 testlib
+            # 使用系统的 testlib
             ln -sf ${pkgs.testlib}/include/testlib/testlib.h \
               $out/share/tuack-ng/checkers/testlib.h
 
@@ -122,8 +125,9 @@
 
           shellHook = ''
             export NIX_TESTLIB_PATH="${pkgs.testlib}/include/testlib/testlib.h"
-
             export RUST_SRC_PATH="${rustToolchain}/lib/rustlib/src/rust/library"
+
+            echo 'Tuack-NG Dev Shell -- run `just --list` for information'
           '';
         };
       }

@@ -2,6 +2,7 @@
 /tests
 /result
 *.pdf
+.direnv/
 /assets/checkers/*
 !/assets/checkers/*.cpp
 /AGENTS.md
