@@ -218,9 +218,9 @@ Tuack-NG 的 NOI 模板衍生自 [CNOI Statement Generator](https://github.com/M
 
 <a href="https://www.star-history.com/?repos=tuack-ng%2Ftuack-ng&type=date&legend=top-left">
  <picture>
-   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/chart?repos=tuack-ng/tuack-ng&type=date&theme=dark&legend=top-left&sealed_token=YwWAUrHmow2w8gExONVDefri57drGKoPDB5naszq9099lixpjDf0VqDfOW2xDUSgBEU5Qb715tsf4cC8ftdpNWqoa6kre1Ic7q-pMXjVKyVaJm4gPCtGmUt2PKOMExKMQylZKAt1DaQfacggpnVz-Re61o1etqBpl7qaY2TbqoSMSW9vOVlC-dYnbA0H" />
-   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/chart?repos=tuack-ng/tuack-ng&type=date&legend=top-left&sealed_token=YwWAUrHmow2w8gExONVDefri57drGKoPDB5naszq9099lixpjDf0VqDfOW2xDUSgBEU5Qb715tsf4cC8ftdpNWqoa6kre1Ic7q-pMXjVKyVaJm4gPCtGmUt2PKOMExKMQylZKAt1DaQfacggpnVz-Re61o1etqBpl7qaY2TbqoSMSW9vOVlC-dYnbA0H" />
-   <img alt="Star History Chart" src="https://api.star-history.com/chart?repos=tuack-ng/tuack-ng&type=date&legend=top-left&sealed_token=YwWAUrHmow2w8gExONVDefri57drGKoPDB5naszq9099lixpjDf0VqDfOW2xDUSgBEU5Qb715tsf4cC8ftdpNWqoa6kre1Ic7q-pMXjVKyVaJm4gPCtGmUt2PKOMExKMQylZKAt1DaQfacggpnVz-Re61o1etqBpl7qaY2TbqoSMSW9vOVlC-dYnbA0H" />
+   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/chart?repos=tuack-ng/tuack-ng&type=date&theme=dark&legend=top-left&sealed_token=RbSB5lr1gLqwQsAoggMmo60ci-CYzMAk6tdmQkA_uCNnU_c-3pFVheB7-e8amwyGS_77th0pPi6ev9bgK1AynptuW7S4tu_qsj2S4H-10IVrGPZUfmLontMeF01xr1bK517eYA0fbWLQe5U_QaopsGIO7rxFJ9ROnT1ifJyVlbd00aogPjnBiaANSQ-f" />
+   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/chart?repos=tuack-ng/tuack-ng&type=date&legend=top-left&sealed_token=RbSB5lr1gLqwQsAoggMmo60ci-CYzMAk6tdmQkA_uCNnU_c-3pFVheB7-e8amwyGS_77th0pPi6ev9bgK1AynptuW7S4tu_qsj2S4H-10IVrGPZUfmLontMeF01xr1bK517eYA0fbWLQe5U_QaopsGIO7rxFJ9ROnT1ifJyVlbd00aogPjnBiaANSQ-f" />
+   <img alt="Star History Chart" src="https://api.star-history.com/chart?repos=tuack-ng/tuack-ng&type=date&legend=top-left&sealed_token=RbSB5lr1gLqwQsAoggMmo60ci-CYzMAk6tdmQkA_uCNnU_c-3pFVheB7-e8amwyGS_77th0pPi6ev9bgK1AynptuW7S4tu_qsj2S4H-10IVrGPZUfmLontMeF01xr1bK517eYA0fbWLQe5U_QaopsGIO7rxFJ9ROnT1ifJyVlbd00aogPjnBiaANSQ-f" />
  </picture>
 </a>
 
