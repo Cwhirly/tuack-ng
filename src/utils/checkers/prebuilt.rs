@@ -1,9 +1,10 @@
 use std::process::{Command, Stdio};
-use tempfile::NamedTempFile;
 
 use crate::prelude::*;
+use crate::tuack_lib::data::AsyncReader;
 use crate::tuack_lib::utils::testlib::Checker;
-use crate::utils::checkers::helper::{JudgeResult, parse_result};
+use crate::utils::checkers::helper::{JudgeResult, parse_result, write_temp};
+use async_trait::async_trait;
 
 /// 使用预编译的 Checker（如 `assets/checkers/normal`）
 pub struct PrebuiltChecker {
@@ -18,6 +19,7 @@ impl PrebuiltChecker {
     }
 }
 
+#[async_trait]
 impl Checker for PrebuiltChecker {
     fn prepare(&mut self) -> Result<()> {
         if !self.binary.exists() {
@@ -26,22 +28,17 @@ impl Checker for PrebuiltChecker {
         Ok(())
     }
 
-    fn validate(
+    async fn validate(
         &self,
-        input: &[u8],
-        output: &[u8],
-        answer: &[u8],
+        input: &mut dyn AsyncReader,
+        output: &mut dyn AsyncReader,
+        answer: &mut dyn AsyncReader,
     ) -> Result<(JudgeResult, String)> {
-        let input_path = NamedTempFile::with_prefix("tuack-ng-checker-in-")?;
-        fs::write(&input_path, input)?;
+        let input_path = write_temp(input, "tuack-ng-checker-in-").await?;
+        let output_path = write_temp(output, "tuack-ng-checker-out-").await?;
+        let answer_path = write_temp(answer, "tuack-ng-checker-ans-").await?;
 
-        let output_path = NamedTempFile::with_prefix("tuack-ng-checker-out-")?;
-        fs::write(&output_path, output)?;
-
-        let answer_path = NamedTempFile::with_prefix("tuack-ng-checker-ans-")?;
-        fs::write(&answer_path, answer)?;
-
-        let res_path = NamedTempFile::with_prefix("tuack-ng-checker-res-")?;
+        let res_path = tempfile::NamedTempFile::with_prefix("tuack-ng-checker-res-")?;
 
         let _status = Command::new(&self.binary)
             .arg(input_path.path())

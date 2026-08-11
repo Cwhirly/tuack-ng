@@ -17,6 +17,8 @@ pub enum TestCaseStatus {
     TLE,
     MLE,
     UKE,
+    /// 文件错误：输出文件不存在
+    FE,
     /// 部分正确，携带 0-100 的比例分
     PC(f64),
 }
@@ -91,40 +93,42 @@ impl<'a> TestSession<'a> {
         self.runner.set_input(input);
         let run = self.runner.execute().await?;
 
-        let (status, score, message) = match run.status {
-            RunStatus::Success => {
-                if run.output.is_empty() {
-                    (TestCaseStatus::WA, 0.0, None)
-                } else {
-                    // 重新从数据源读取，不保留输入副本 (大内存约束)
-                    let input = match data.input().await {
-                        Ok(i) => i,
-                        Err(e) => return Ok(uke_result(format!("读取输入失败：{e}"))),
-                    };
-                    let answer = match data.answer().await {
-                        Ok(a) => a,
-                        Err(e) => return Ok(uke_result(format!("读取答案失败：{e}"))),
-                    };
-                    match self.checker.validate(&input, &run.output, &answer) {
-                        Ok((JudgeResult::Accepted, msg)) => (TestCaseStatus::AC, 1.0, Some(msg)),
-                        Ok((JudgeResult::WrongAnswer, msg)) => (TestCaseStatus::WA, 0.0, Some(msg)),
-                        Ok((JudgeResult::PresentationError, msg)) => {
-                            (TestCaseStatus::WA, 0.0, Some(msg))
-                        }
-                        Ok((JudgeResult::Score(p), msg)) => (
-                            TestCaseStatus::PC(p),
-                            (p / 100.0).clamp(0.0, 1.0),
-                            Some(msg),
-                        ),
-                        Ok((JudgeResult::Fail, msg)) => (TestCaseStatus::UKE, 0.0, Some(msg)),
-                        Err(e) => (TestCaseStatus::UKE, 0.0, Some(format!("{e:#}"))),
+        let (status, score, message) = match (run.status, run.output) {
+            (RunStatus::Success, None) => {
+                (TestCaseStatus::FE, 0.0, Some("未找到输出文件".to_string()))
+            }
+            (RunStatus::Success, Some(mut output)) => {
+                let mut input = match data.input().await {
+                    Ok(i) => i,
+                    Err(e) => return Ok(uke_result(format!("读取输入失败：{e}"))),
+                };
+                let mut answer = match data.answer().await {
+                    Ok(a) => a,
+                    Err(e) => return Ok(uke_result(format!("读取答案失败：{e}"))),
+                };
+                match self
+                    .checker
+                    .validate(&mut input, &mut output, &mut answer)
+                    .await
+                {
+                    Ok((JudgeResult::Accepted, msg)) => (TestCaseStatus::AC, 1.0, Some(msg)),
+                    Ok((JudgeResult::WrongAnswer, msg)) => (TestCaseStatus::WA, 0.0, Some(msg)),
+                    Ok((JudgeResult::PresentationError, msg)) => {
+                        (TestCaseStatus::WA, 0.0, Some(msg))
                     }
+                    Ok((JudgeResult::Score(p), msg)) => (
+                        TestCaseStatus::PC(p),
+                        (p / 100.0).clamp(0.0, 1.0),
+                        Some(msg),
+                    ),
+                    Ok((JudgeResult::Fail, msg)) => (TestCaseStatus::UKE, 0.0, Some(msg)),
+                    Err(e) => (TestCaseStatus::UKE, 0.0, Some(format!("{e:#}"))),
                 }
             }
-            RunStatus::NonZeroExit(_) => (TestCaseStatus::RE, 0.0, None),
-            RunStatus::TimeLimitExceeded => (TestCaseStatus::TLE, 0.0, None),
-            RunStatus::MemoryLimitExceeded => (TestCaseStatus::MLE, 0.0, None),
-            RunStatus::InternalError(e) => (TestCaseStatus::UKE, 0.0, Some(format!("{e:#}"))),
+            (RunStatus::NonZeroExit(_), _) => (TestCaseStatus::RE, 0.0, None),
+            (RunStatus::TimeLimitExceeded, _) => (TestCaseStatus::TLE, 0.0, None),
+            (RunStatus::MemoryLimitExceeded, _) => (TestCaseStatus::MLE, 0.0, None),
+            (RunStatus::InternalError(e), _) => (TestCaseStatus::UKE, 0.0, Some(format!("{e:#}"))),
         };
 
         Ok(TestCaseResult {

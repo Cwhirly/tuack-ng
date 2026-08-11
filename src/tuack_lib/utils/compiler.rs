@@ -2,6 +2,7 @@ use async_trait::async_trait;
 use std::time::Duration;
 
 use crate::prelude::*;
+use crate::tuack_lib::data::AsyncReader;
 
 /// 运行器元信息。
 pub struct RunnerManifest {
@@ -46,15 +47,14 @@ pub enum RunStatus {
 }
 
 /// `execute()` 的返回结果。
-#[derive(Debug)]
 pub struct RunResult {
     pub status: RunStatus,
     /// 运行时间，TLE/MLE 时为 `None`。
     pub time: Option<Duration>,
     /// 峰值内存（字节），TLE/MLE 时为 `None`。
     pub memory: Option<u64>,
-    /// 程序输出。
-    pub output: Vec<u8>,
+    /// 程序输出流；`None` 表示输出文件不存在（文件 IO 程序未写输出）。
+    pub output: Option<Box<dyn AsyncReader>>,
     /// 程序 stderr。
     pub stderr: Vec<u8>,
 }
@@ -87,8 +87,8 @@ pub trait Runner: Send {
 
     /// 设置运行限制
     fn set_limits(&mut self, limits: ResourceLimits);
-    /// 设置输入
-    fn set_input(&mut self, input: Vec<u8>);
+    /// 设置输入（消耗流）
+    fn set_input(&mut self, input: Box<dyn AsyncReader>);
     /// 设置 IO 模式
     fn set_io_mode(&mut self, io_mode: IoMode);
     /// 设置交互

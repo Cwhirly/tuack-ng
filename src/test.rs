@@ -37,6 +37,7 @@ pub(crate) enum DisplayStatus {
     TLE,
     MLE,
     UKE,
+    FE,
     PC(f64),
     CE,
 }
@@ -50,6 +51,7 @@ impl From<&TestCaseStatus> for DisplayStatus {
             TestCaseStatus::TLE => DisplayStatus::TLE,
             TestCaseStatus::MLE => DisplayStatus::MLE,
             TestCaseStatus::UKE => DisplayStatus::UKE,
+            TestCaseStatus::FE => DisplayStatus::FE,
             TestCaseStatus::PC(p) => DisplayStatus::PC(*p),
         }
     }
@@ -93,6 +95,7 @@ fn status_color(status: &DisplayStatus) -> String {
         DisplayStatus::MLE => "MLE".blue().to_string(),
         DisplayStatus::RE => "RE".bright_blue().to_string(),
         DisplayStatus::UKE => "UKE".bright_black().to_string(),
+        DisplayStatus::FE => "FE".yellow().to_string(),
         DisplayStatus::CE => "CE".yellow().to_string(),
         DisplayStatus::PC(score) => format!("PC {:.2} / 100", score).yellow().to_string(),
     }
@@ -158,10 +161,10 @@ fn write_results_to_csv(results: Vec<ProblemTestResult>, csv_path: &Path) -> Res
         // 给这个测试者写入总分
         wtr.write_record(&[
             result.tester_name.clone(),
-            "".to_string(),                        // 测试点 ID
-            "TOTAL".to_string(),                   // 状态
-            result.total_score.to_string(),        // 得分
-            result.full_score.to_string(), // 满分
+            "".to_string(),                 // 测试点 ID
+            "TOTAL".to_string(),            // 状态
+            result.total_score.to_string(), // 得分
+            result.full_score.to_string(),  // 满分
             "".to_string(),
             "".to_string(),
             "".to_string(),

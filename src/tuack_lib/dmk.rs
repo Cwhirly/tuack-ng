@@ -196,23 +196,34 @@ pub async fn dmk(
         if (!matches!(action, DmkCommand::Gen) || !input_path.exists()) && gen_input {
             let seed = seeds.get(&data_item.id).unwrap();
 
-            match generator.run(data_item.args.clone(), *seed) {
-                Ok(output) => {
-                    if let Err(e) = fs::write(&input_path, &output).await {
+            match generator.run(data_item.args.clone(), *seed).await {
+                Ok(mut output) => {
+                    let write_res = async {
+                        let mut f = tokio::fs::File::create(&input_path).await?;
+                        tokio::io::copy(&mut *output, &mut f).await?;
+                        Ok::<(), anyhow::Error>(())
+                    }
+                    .await;
+                    if let Err(e) = write_res {
                         reporter.generate_input(data_item.id, &DmkResult::Fail(e.into()));
                     } else if let Some(validator) = validator {
-                        match validator.validate(&output) {
-                            Ok(ValidatorResult::Ok) => {
-                                reporter.generate_input(data_item.id, &action.into());
-                            }
-                            Ok(ValidatorResult::Invalid(message)) => {
-                                reporter.generate_input(
-                                    data_item.id,
-                                    &DmkResult::Fail(anyhow!("输入校验失败：{}", message)),
-                                );
-                            }
+                        match tokio::fs::File::open(&input_path).await {
+                            Ok(mut f) => match validator.validate(&mut f).await {
+                                Ok(ValidatorResult::Ok) => {
+                                    reporter.generate_input(data_item.id, &action.into());
+                                }
+                                Ok(ValidatorResult::Invalid(message)) => {
+                                    reporter.generate_input(
+                                        data_item.id,
+                                        &DmkResult::Fail(anyhow!("输入校验失败：{}", message)),
+                                    );
+                                }
+                                Err(e) => {
+                                    reporter.generate_input(data_item.id, &DmkResult::Fail(e));
+                                }
+                            },
                             Err(e) => {
-                                reporter.generate_input(data_item.id, &DmkResult::Fail(e));
+                                reporter.generate_input(data_item.id, &DmkResult::Fail(e.into()));
                             }
                         }
                     } else {
@@ -342,8 +353,8 @@ async fn generate_output(
     problem_name: &str,
     file_io: bool,
 ) -> Result<()> {
-    let input_bytes = tokio::fs::read(input_path).await?;
-    runner.set_input(input_bytes);
+    let input_file = tokio::fs::File::open(input_path).await?;
+    runner.set_input(Box::new(input_file));
 
     if file_io {
         runner.set_io_mode(IoMode::File {
@@ -371,11 +382,13 @@ async fn generate_output(
         }
     }
 
-    if result.output.is_empty() {
-        bail!("标程未生成输出");
-    }
+    let mut output = match result.output {
+        Some(out) => out,
+        None => bail!("标程未生成输出"),
+    };
 
-    tokio::fs::write(output_path, &result.output).await?;
+    let mut out_file = tokio::fs::File::create(output_path).await?;
+    tokio::io::copy(&mut output, &mut out_file).await?;
 
     debug!("成功生成输出文件：{}", output_path.display());
 

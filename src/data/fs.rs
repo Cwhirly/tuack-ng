@@ -2,10 +2,10 @@ use std::io;
 use std::path::PathBuf;
 
 use async_trait::async_trait;
+use tokio::fs::File;
 
 use crate::config::{ExpandedDataItem, ExpandedSampleItem};
-use crate::tuack_lib::data::Data;
-
+use crate::tuack_lib::data::{AsyncReader, Data};
 /// 被包装的数据来源引用
 enum TestItemRef<'a> {
     Data(&'a ExpandedDataItem),
@@ -76,11 +76,13 @@ impl<'a> FsTestData<'a> {
 
 #[async_trait]
 impl Data for FsTestData<'_> {
-    async fn input(&self) -> io::Result<Vec<u8>> {
-        tokio::fs::read(self.base_dir.join(self.input_name())).await
+    async fn input(&self) -> io::Result<Box<dyn AsyncReader>> {
+        let f = File::open(self.base_dir.join(self.input_name())).await?;
+        Ok(Box::new(f))
     }
 
-    async fn answer(&self) -> io::Result<Vec<u8>> {
-        tokio::fs::read(self.base_dir.join(self.answer_name())).await
+    async fn answer(&self) -> io::Result<Box<dyn AsyncReader>> {
+        let f = File::open(self.base_dir.join(self.answer_name())).await?;
+        Ok(Box::new(f))
     }
 }

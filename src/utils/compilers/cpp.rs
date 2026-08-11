@@ -4,6 +4,7 @@ use tempfile::TempDir;
 use tokio::process::Command as TokioCommand;
 
 use crate::prelude::*;
+use crate::tuack_lib::data::AsyncReader;
 use crate::tuack_lib::utils::compiler::{IoMode, ResourceLimits, RunResult, RunnerManifest};
 use crate::utils::command::string_to_command;
 use crate::utils::process::ProcessSupervisor;
@@ -18,7 +19,7 @@ pub struct CppRunner {
     grader_path: Option<PathBuf>,
     header_path: Option<PathBuf>,
     limits: Option<ResourceLimits>,
-    input: Option<Vec<u8>>,
+    input: Option<Box<dyn AsyncReader>>,
     io_mode: IoMode,
 }
 
@@ -174,7 +175,7 @@ impl Runner for CppRunner {
         self.limits = Some(limits);
     }
 
-    fn set_input(&mut self, input: Vec<u8>) {
+    fn set_input(&mut self, input: Box<dyn AsyncReader>) {
         self.input = Some(input);
     }
 
@@ -192,7 +193,10 @@ impl Runner for CppRunner {
     async fn execute(&mut self) -> Result<RunResult> {
         let limits = self.limits.take().unwrap_or(ResourceLimits::unlimited());
 
-        let input_buf = self.input.take().unwrap_or_default();
+        let mut input = self
+            .input
+            .take()
+            .unwrap_or_else(|| Box::new(tokio::io::empty()));
 
         let program_path = self.tmp_dir.path().join(format!(
             "{}{}",
@@ -211,15 +215,19 @@ impl Runner for CppRunner {
             IoMode::Stdio => {
                 let stdin_path = self.tmp_dir.path().join("pipe_stdin");
                 let stdout_path = self.tmp_dir.path().join("pipe_stdout");
-                std::fs::write(&stdin_path, &input_buf)?;
-                let stdin_file = std::fs::File::open(&stdin_path)?;
-                let stdout_file = std::fs::File::create(&stdout_path)?;
-                cmd.stdin(Stdio::from(stdin_file));
-                cmd.stdout(Stdio::from(stdout_file));
+                let mut stdin_file = tokio::fs::File::create(&stdin_path).await?;
+                tokio::io::copy(&mut input, &mut stdin_file).await?;
+                drop(stdin_file);
+                let stdin_handle = std::fs::File::open(&stdin_path)?;
+                let stdout_handle = std::fs::File::create(&stdout_path)?;
+                cmd.stdin(Stdio::from(stdin_handle));
+                cmd.stdout(Stdio::from(stdout_handle));
             }
             IoMode::File { input_name, .. } => {
                 let input_path = self.tmp_dir.path().join(input_name);
-                std::fs::write(&input_path, &input_buf)?;
+                let mut input_file = tokio::fs::File::create(&input_path).await?;
+                tokio::io::copy(&mut input, &mut input_file).await?;
+                drop(input_file);
                 cmd.stdin(Stdio::null());
                 cmd.stdout(Stdio::null());
             }
@@ -237,15 +245,15 @@ impl Runner for CppRunner {
         // 读取 stderr
         let stderr = tokio::fs::read(stderr_path).await?;
 
-        // 读取 output
-        let output = match &self.io_mode {
-            IoMode::Stdio => tokio::fs::read(self.tmp_dir.path().join("pipe_stdout"))
-                .await
-                .unwrap_or_default(),
-            IoMode::File { output_name, .. } => {
-                tokio::fs::read(self.tmp_dir.path().join(output_name))
-                    .await
-                    .unwrap_or_default()
+        let output: Option<Box<dyn AsyncReader>> = {
+            let output_path = match &self.io_mode {
+                IoMode::Stdio => self.tmp_dir.path().join("pipe_stdout"),
+                IoMode::File { output_name, .. } => self.tmp_dir.path().join(output_name),
+            };
+            if !tokio::fs::try_exists(&output_path).await? {
+                None
+            } else {
+                Some(Box::new(tokio::fs::File::open(&output_path).await?))
             }
         };
 

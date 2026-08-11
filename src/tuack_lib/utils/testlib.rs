@@ -1,4 +1,7 @@
+use async_trait::async_trait;
+
 use crate::prelude::*;
+use crate::tuack_lib::data::AsyncReader;
 
 /// 数据生成器参数
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -11,9 +14,11 @@ pub enum Arg {
 }
 
 /// 数据生成器
+#[async_trait]
 pub trait Generator: Send {
     fn prepare(&mut self) -> Result<()>;
-    fn run(&self, args: IndexMap<String, Arg>, seed: u64) -> Result<Vec<u8>>;
+    /// 运行生成器，返回生成的输入流
+    async fn run(&self, args: IndexMap<String, Arg>, seed: u64) -> Result<Box<dyn AsyncReader>>;
 }
 
 /// Checker（SPJ）结果类型
@@ -27,10 +32,15 @@ pub enum JudgeResult {
 }
 
 /// Checker（SPJ）
+#[async_trait]
 pub trait Checker: Send {
     fn prepare(&mut self) -> Result<()>;
-    fn validate(&self, input: &[u8], output: &[u8], answer: &[u8])
-    -> Result<(JudgeResult, String)>;
+    async fn validate(
+        &self,
+        input: &mut dyn AsyncReader,
+        output: &mut dyn AsyncReader,
+        answer: &mut dyn AsyncReader,
+    ) -> Result<(JudgeResult, String)>;
 }
 
 /// Validator（输入校验器）结果
@@ -43,7 +53,8 @@ pub enum ValidatorResult {
 }
 
 /// Validator（输入校验器）
+#[async_trait]
 pub trait Validator: Send {
     fn prepare(&mut self) -> Result<()>;
-    fn validate(&self, input: &[u8]) -> Result<ValidatorResult>;
+    async fn validate(&self, input: &mut dyn AsyncReader) -> Result<ValidatorResult>;
 }

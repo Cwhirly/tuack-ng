@@ -163,7 +163,9 @@ fn conf_length(args: &ConfValuesArgs) -> Result<()> {
         .context("没有找到有效的工程")?
         .location
     {
-        CurrentLocation::Problem(_, _) => bail!("本命令不能在题目目录使用，请在比赛根目录设置比赛长度"),
+        CurrentLocation::Problem(_, _) => {
+            bail!("本命令不能在题目目录使用，请在比赛根目录设置比赛长度")
+        }
         CurrentLocation::Root => {
             let mut config = gctx()
                 .config

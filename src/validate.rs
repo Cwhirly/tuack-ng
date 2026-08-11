@@ -58,8 +58,8 @@ pub fn compile_validator(
     let mut deps: IndexMap<String, Vec<u8>> = IndexMap::new();
     for dep_path in &val_config.deps {
         let abs = resolve(dep_path);
-        let content = fs::read(&abs)
-            .with_context(|| format!("Validator 依赖读取失败：{}", abs.display()))?;
+        let content =
+            fs::read(&abs).with_context(|| format!("Validator 依赖读取失败：{}", abs.display()))?;
         let name = abs.file_name().unwrap().to_string_lossy().to_string();
         deps.insert(name, content);
     }
@@ -139,7 +139,7 @@ async fn validate_problem(
     let mut failed = 0;
     for (idx, data_item) in data_items.iter().enumerate() {
         let result = match data_item.input().await {
-            Ok(input_bytes) => validator.validate(&input_bytes),
+            Ok(mut reader) => validator.validate(&mut *reader).await,
             Err(e) => {
                 msg_item!(
                     "FAIL".red().bold(),

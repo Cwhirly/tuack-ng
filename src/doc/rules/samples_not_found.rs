@@ -44,10 +44,7 @@ impl CheckRule for SamplesNotFound {
                     messages.push(CheckInfo {
                         line: None,
                         col: Some(col_num + 1),
-                        info: format!(
-                            "sample.{}({}) 对应的样本配置不存在，ID 无效",
-                            kind, id
-                        ),
+                        info: format!("sample.{}({}) 对应的样本配置不存在，ID 无效", kind, id),
                         importance: CheckImportance::Error,
                     });
                     continue;

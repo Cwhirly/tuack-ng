@@ -1,8 +1,11 @@
-use std::process::{Command, Stdio};
+use std::process::{Command as StdCommand, Stdio};
 use tempfile::TempDir;
 
 use crate::prelude::*;
+use crate::tuack_lib::data::AsyncReader;
 use crate::tuack_lib::utils::testlib::{Arg, Generator};
+use async_trait::async_trait;
+use tokio::process::Command;
 
 pub struct CppGenerator {
     tmp_dir: TempDir,
@@ -42,6 +45,7 @@ impl CppGenerator {
     }
 }
 
+#[async_trait]
 impl Generator for CppGenerator {
     fn prepare(&mut self) -> Result<()> {
         if !self.tmp_dir.path().exists() {
@@ -65,7 +69,7 @@ impl Generator for CppGenerator {
             .path()
             .join("gen")
             .with_extension(std::env::consts::EXE_EXTENSION);
-        let mut cmd = Command::new("g++");
+        let mut cmd = StdCommand::new("g++");
         cmd.arg("-o").arg(&binary_path).arg(&source_target);
 
         let parsed = shellwords::split(&self.compile_args)?;
@@ -86,7 +90,7 @@ impl Generator for CppGenerator {
         Ok(())
     }
 
-    fn run(&self, args: IndexMap<String, Arg>, seed: u64) -> Result<Vec<u8>> {
+    async fn run(&self, args: IndexMap<String, Arg>, seed: u64) -> Result<Box<dyn AsyncReader>> {
         let binary = self
             .binary_path
             .as_ref()
@@ -107,19 +111,27 @@ impl Generator for CppGenerator {
 
         cmd_args.push(format!("-seed={}", seed).to_string());
 
-        let output = Command::new(binary)
-            .args(&cmd_args)
-            .stdout(Stdio::piped())
-            .stderr(Stdio::piped())
-            .output()?;
+        // stdout/stderr 重定向到临时文件，避免整块读入内存
+        let out_path = self.tmp_dir.path().join(format!("gen-{seed}.out"));
+        let err_path = self.tmp_dir.path().join(format!("gen-{seed}.err"));
+        let out_file = std::fs::File::create(&out_path)?;
+        let err_file = std::fs::File::create(&err_path)?;
 
-        if !output.status.success() {
-            bail!(
-                "生成器运行失败：{}",
-                String::from_utf8_lossy(&output.stderr)
-            );
+        let status = Command::new(binary)
+            .args(&cmd_args)
+            .stdout(Stdio::from(out_file))
+            .stderr(Stdio::from(err_file))
+            .status()
+            .await?;
+
+        if !status.success() {
+            let err = tokio::fs::read_to_string(&err_path)
+                .await
+                .unwrap_or_default();
+            bail!("生成器运行失败：{}", err);
         }
 
-        Ok(output.stdout)
+        let f = tokio::fs::File::open(&out_path).await?;
+        Ok(Box::new(f))
     }
 }

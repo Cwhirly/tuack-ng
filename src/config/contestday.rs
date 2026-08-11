@@ -46,7 +46,9 @@ impl ContestDayConfig {
 
         // 检查版本
         if version < CONFIG_MIN_VERSION {
-            bail!("配置文件版本过低，可能是 Tuack 的配置文件。请迁移到 Tuack-NG 配置文件格式再使用。");
+            bail!(
+                "配置文件版本过低，可能是 Tuack 的配置文件。请迁移到 Tuack-NG 配置文件格式再使用。"
+            );
         }
 
         if version > CONFIG_VERSION {

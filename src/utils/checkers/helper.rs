@@ -1,4 +1,7 @@
+use tempfile::NamedTempFile;
+
 use crate::prelude::*;
+use crate::tuack_lib::data::AsyncReader;
 pub use crate::tuack_lib::utils::testlib::JudgeResult;
 use quick_xml::de::from_str;
 
@@ -38,6 +41,15 @@ pub fn parse_result(xml_str: &str) -> Result<(JudgeResult, String)> {
     };
 
     Ok((result, message))
+}
+
+/// 将输入流流式写入临时文件，供 SPJ 程序按路径读取。
+pub async fn write_temp(reader: &mut dyn AsyncReader, prefix: &str) -> Result<NamedTempFile> {
+    let tmp = NamedTempFile::with_prefix(prefix)?;
+    let mut f = tokio::fs::File::create(tmp.path()).await?;
+    tokio::io::copy(reader, &mut f).await?;
+    drop(f);
+    Ok(tmp)
 }
 
 fn parse_score_value(attr_value: &Option<String>) -> Result<f64> {

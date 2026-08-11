@@ -92,12 +92,7 @@ pub fn hn(num: f64, style: Option<&str>) -> String {
                 if int_num == 10_i64.pow(n as u32) {
                     format!("{}10^{{{}}}", neg, n)
                 } else {
-                    format!(
-                        "{}{} \\times 10^{{{}}}",
-                        neg,
-                        sci_coeff(int_num, n),
-                        n
-                    )
+                    format!("{}{} \\times 10^{{{}}}", neg, sci_coeff(int_num, n), n)
                 }
             }
             Some(",") => format!("{}{}", neg, comma(int_num)),
@@ -117,12 +112,7 @@ pub fn hn(num: f64, style: Option<&str>) -> String {
                 } else if int_num == 10_i64.pow(n as u32) {
                     format!("{}10^{{{}}}", neg, n)
                 } else {
-                    format!(
-                        "{}{} \\times 10^{{{}}}",
-                        neg,
-                        sci_coeff(int_num, n),
-                        n
-                    )
+                    format!("{}{} \\times 10^{{{}}}", neg, sci_coeff(int_num, n), n)
                 }
             }
         };
