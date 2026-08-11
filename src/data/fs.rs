@@ -4,7 +4,7 @@ use std::path::PathBuf;
 use async_trait::async_trait;
 
 use crate::config::{ExpandedDataItem, ExpandedSampleItem};
-use crate::tuack_lib::data::{Data, TestData};
+use crate::tuack_lib::data::Data;
 
 /// 被包装的数据来源引用
 enum TestItemRef<'a> {
@@ -48,38 +48,39 @@ impl<'a> FsTestData<'a> {
             TestItemRef::Sample(item) => &item.output,
         }
     }
-}
 
-#[async_trait]
-impl Data for FsTestData<'_> {
-    fn id(&self) -> u32 {
-        match &self.item {
-            TestItemRef::Data(item) => item.id,
-            TestItemRef::Sample(item) => item.id,
-        }
-    }
-
-    async fn input(&self) -> io::Result<Vec<u8>> {
-        tokio::fs::read(self.base_dir.join(self.input_name())).await
-    }
-
-    async fn answer(&self) -> io::Result<Vec<u8>> {
-        tokio::fs::read(self.base_dir.join(self.answer_name())).await
-    }
-}
-
-impl TestData for FsTestData<'_> {
-    fn score(&self) -> u32 {
+    /// 该测试点的满分 (样例约定每点 1 分)。
+    pub fn full_score(&self) -> u32 {
         match &self.item {
             TestItemRef::Data(item) => item.score,
             TestItemRef::Sample(_) => 1,
         }
     }
 
-    fn subtask(&self) -> u32 {
+    /// 该测试点所属子任务 (样例约定为 0)。
+    pub fn subtask(&self) -> u32 {
         match &self.item {
             TestItemRef::Data(item) => item.subtask,
             TestItemRef::Sample(_) => 0,
         }
+    }
+
+    /// 该测试点编号。
+    pub fn id(&self) -> u32 {
+        match &self.item {
+            TestItemRef::Data(item) => item.id,
+            TestItemRef::Sample(item) => item.id,
+        }
+    }
+}
+
+#[async_trait]
+impl Data for FsTestData<'_> {
+    async fn input(&self) -> io::Result<Vec<u8>> {
+        tokio::fs::read(self.base_dir.join(self.input_name())).await
+    }
+
+    async fn answer(&self) -> io::Result<Vec<u8>> {
+        tokio::fs::read(self.base_dir.join(self.answer_name())).await
     }
 }

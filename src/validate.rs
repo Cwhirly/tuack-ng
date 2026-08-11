@@ -4,8 +4,9 @@ use owo_colors::OwoColorize;
 use std::time::Duration;
 
 use crate::config::ExpandedDataItem;
+use crate::data::fs::FsTestData;
 use crate::prelude::*;
-use crate::tuack_lib::data::TestData;
+use crate::tuack_lib::data::Data;
 use crate::tuack_lib::utils::testlib::{Validator, ValidatorResult};
 use crate::utils::validators::cpp::CppValidator;
 
@@ -104,7 +105,7 @@ async fn validate_problem(
 
     let selected = crate::utils::test_object::parse_test_object(object, &selected)?;
 
-    let data_items: Vec<Box<dyn TestData + '_>> = match target {
+    let data_items: Vec<FsTestData<'_>> = match target {
         Target::Data => problem_config.test_data(),
         Target::Sample => problem_config.sample_data(),
     };
