@@ -41,7 +41,7 @@ Tuack-NG（`Tuack New Generation`）是一套完整的用于辅助 OI/ACM 竞赛
   - [x] NOI 格式
   - [x] CCPC 格式
 - [x] 渲染到 Markdown
-- [ ]渲染到 HTML
+- [ ] 渲染到 HTML
 - [ ] 渲染到 (...)
 - [x] 基于 MiniJinja 的模板系统
 - [ ] 支持多语言
