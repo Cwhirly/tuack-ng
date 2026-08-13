@@ -100,7 +100,7 @@
           meta = with pkgs.lib; {
             description = "重构后的 tuack 项目，旨在提供更加高效和轻量的出题体验。";
             homepage = "https://github.com/tuack-ng/tuack-ng";
-            license = licenses.agpl3Only;
+            license = licenses.agpl3Plus;
             platforms = platforms.unix;
             mainProgram = "tuack-ng";
           };
