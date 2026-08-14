@@ -110,11 +110,11 @@
     "templates-src": {
       "flake": false,
       "locked": {
-        "lastModified": 1785313958,
-        "narHash": "sha256-TdUUZayLc4VxSQdOJB1B1VvGtGQT6XL1lVPEY9Gk4zc=",
+        "lastModified": 1786690216,
+        "narHash": "sha256-Or1mS3S4g4AoNkpNKvmxdz9MImpLuulRJIVWIT7VM1w=",
         "owner": "tuack-ng",
         "repo": "templates",
-        "rev": "6f5a33b73cd67bdaf4e6f71ddbdb3a790294c855",
+        "rev": "23ff6452c5de584dfbbdaa6425825af4c54e9a4f",
         "type": "github"
       },
       "original": {
