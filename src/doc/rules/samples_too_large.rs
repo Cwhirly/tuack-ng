@@ -6,7 +6,7 @@ use crate::{
     },
 };
 use lazy_static::lazy_static;
-use markdown_ppp::ast::*;
+use tuack_ng_parser::ast::Document;
 use regex::Regex;
 
 lazy_static! {
@@ -186,7 +186,7 @@ impl CheckRule for SamplesTooLarge {
         Ok(CheckResult::Tagged(messages))
     }
 
-    fn check_ast(&self, _: &Document, _: &ProblemConfig) -> Result<CheckResult> {
+    fn check_ast(&self, _: &Document, _source: &str, _: &ProblemConfig) -> Result<CheckResult> {
         unreachable!()
     }
 }

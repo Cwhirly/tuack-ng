@@ -5,7 +5,7 @@ use crate::{
         FormatRule,
     },
 };
-use markdown_ppp::ast::*;
+use tuack_ng_parser::ast::Document;
 
 // 不可见字符列表
 const INVISIBLE_CHARS: &[char] = &[
@@ -112,7 +112,7 @@ impl CheckRule for Invisible {
         Ok(CheckResult::Tagged(messages))
     }
 
-    fn check_ast(&self, _: &Document, _: &ProblemConfig) -> Result<CheckResult> {
+    fn check_ast(&self, _: &Document, _source: &str, _: &ProblemConfig) -> Result<CheckResult> {
         unreachable!()
     }
 }

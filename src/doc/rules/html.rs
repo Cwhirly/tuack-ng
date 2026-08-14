@@ -1,33 +1,36 @@
+use crate::doc::span::span_to_line_col;
 use crate::{
     prelude::*,
     tuack_lib::doc::rules::{CheckImportance, CheckInfo, CheckManifest, CheckResult, CheckRule},
 };
-use markdown_ppp::{
-    ast::*,
-    ast_transform::{VisitWith, Visitor},
-};
+use tuack_ng_parser::ast::block::BlockKind;
+use tuack_ng_parser::ast::inline::InlineKind;
+use tuack_ng_parser::visitor::{VisitWith, Visitor};
 
-struct HtmlVisitor {
+struct HtmlVisitor<'a> {
     messages: Vec<CheckInfo>,
+    source: &'a str,
 }
 
-impl Visitor for HtmlVisitor {
-    fn visit_inline(&mut self, inline: &Inline) {
-        if let Inline::Html(content) = inline {
+impl Visitor for HtmlVisitor<'_> {
+    fn visit_inline(&mut self, inline: &tuack_ng_parser::Inline) {
+        if let InlineKind::Html(content) = &inline.value {
+            let (line, col) = span_to_line_col(self.source, inline.span);
             self.messages.push(CheckInfo {
-                line: None,
-                col: None,
+                line,
+                col,
                 info: format!("检测到内嵌 Html: {}", content),
                 importance: CheckImportance::Warn,
             });
         }
         self.walk_inline(inline);
     }
-    fn visit_block(&mut self, block: &Block) {
-        if let Block::HtmlBlock(content) = block {
+    fn visit_block(&mut self, block: &tuack_ng_parser::Block) {
+        if let BlockKind::HtmlBlock(content) = &block.value {
+            let (line, col) = span_to_line_col(self.source, block.span);
             self.messages.push(CheckInfo {
-                line: None,
-                col: None,
+                line,
+                col,
                 info: format!(
                     "检测到 Html 块，第一行为：{}",
                     content.lines().nth(0).unwrap_or("")
@@ -55,9 +58,15 @@ impl CheckRule for Html {
         unreachable!()
     }
 
-    fn check_ast(&self, doc: &Document, _problem_config: &ProblemConfig) -> Result<CheckResult> {
+    fn check_ast(
+        &self,
+        doc: &tuack_ng_parser::ast::Document,
+        source: &str,
+        _problem_config: &ProblemConfig,
+    ) -> Result<CheckResult> {
         let mut visitor = HtmlVisitor {
             messages: Vec::new(),
+            source,
         };
         doc.visit_with(&mut visitor);
         Ok(CheckResult::Tagged(visitor.messages))

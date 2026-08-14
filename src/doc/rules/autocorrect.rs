@@ -6,7 +6,7 @@ use crate::{
     },
 };
 use autocorrect::{Severity, format_for, lint_for};
-use markdown_ppp::ast::*;
+use tuack_ng_parser::ast::Document;
 
 /*
 已知在行中有 $$, {{ }} 时，不会告警没有句号，对于 {{ }}，也不会保留空格。
@@ -88,7 +88,7 @@ impl CheckRule for Autocorrect {
         Ok(CheckResult::Tagged(messages))
     }
 
-    fn check_ast(&self, _: &Document, _: &ProblemConfig) -> Result<CheckResult> {
+    fn check_ast(&self, _: &Document, _source: &str, _: &ProblemConfig) -> Result<CheckResult> {
         unreachable!()
     }
 }

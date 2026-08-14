@@ -1,11 +1,10 @@
 use crate::prelude::*;
-use crate::ren::Compiler;
-use crate::ren::RenderQueue;
-use crate::ren::copy_dir_recursive;
+use crate::utils::filesystem::copy_dir_recursive;
 use crate::ren::manifest::TemplateManifest;
+use crate::ren::RenderQueue;
 use crate::tuack_lib::ren::base::Checker;
-use markdown_ppp::printer::config::Config;
-use markdown_ppp::printer::render_markdown;
+use crate::tuack_lib::ren::base::Compiler;
+use tuack_ng_parser::printers::render_markdown;
 
 pub struct MarkdownChecker {}
 
@@ -15,10 +14,10 @@ impl Checker for MarkdownChecker {
     }
 
     fn check_compiler(&self) -> Result<()> {
-        // Markdown 不需要特殊的编译器检查
         Ok(())
     }
 }
+
 pub struct MarkdownCompiler {
     pub day_config: ContestDayConfig,
     pub tmp_dir: PathBuf,
@@ -47,7 +46,7 @@ impl Compiler for MarkdownCompiler {
         }
         for item in &self.renderqueue {
             if let RenderQueue::Problem(ast, problem_config) = item {
-                let output = render_markdown(ast, Config::default().with_width(10000000));
+                let output = render_markdown(ast);
                 let output_filename = format!("{}.md", problem_config.name);
 
                 fs::write(output_dir.join(&output_filename), output)?;

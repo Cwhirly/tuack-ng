@@ -3,10 +3,10 @@ use crate::{
     tuack_lib::doc::rules::{CheckImportance, CheckInfo, CheckManifest, CheckResult, CheckRule},
 };
 use lazy_static::lazy_static;
-use markdown_ppp::{
-    ast::*,
-    ast_transform::{VisitWith, Visitor},
-};
+use tuack_ng_parser::ast::block::BlockKind;
+use tuack_ng_parser::ast::inline::InlineKind;
+use tuack_ng_parser::ast::{Document};
+use tuack_ng_parser::visitor::{VisitWith, Visitor};
 use regex::Regex;
 
 lazy_static! {
@@ -45,12 +45,18 @@ lazy_static! {
     static ref COMMA_NUMBER: Regex = Regex::new(r"\d{3,},\d{3,}").unwrap();
 }
 
-struct LatexVisitor {
+struct LatexVisitor<'a> {
     messages: Vec<CheckInfo>,
+    source: &'a str,
 }
 
-impl LatexVisitor {
-    fn check_latex(&mut self, latex: &String) {
+impl LatexVisitor<'_> {
+    fn pos(&self, span: Option<tuack_ng_parser::Span>) -> (Option<usize>, Option<usize>) {
+        crate::doc::span::span_to_line_col(self.source, span)
+    }
+
+    fn check_latex(&mut self, latex: &String, pos: (Option<usize>, Option<usize>)) {
+        let (line, col) = pos;
         // 检查数学函数名（应该用 \sin 而不是 sin）
         for cap in MATH_FUNCTIONS.find_iter(latex) {
             let func = cap.as_str();
@@ -58,8 +64,8 @@ impl LatexVisitor {
             let start = cap.start();
             if start == 0 || latex.as_bytes().get(start - 1).is_none_or(|&b| b != b'\\') {
                 self.messages.push(CheckInfo {
-                    line: None,
-                    col: None,
+                    line,
+                    col,
                     info: format!("在公式 {} 中：`{}` 应该写成 `\\{}`", latex, func, func),
                     importance: CheckImportance::Warn,
                 });
@@ -70,8 +76,8 @@ impl LatexVisitor {
         if LE_OPERATOR.is_match(latex) {
             for cap in LE_OPERATOR.find_iter(latex) {
                 self.messages.push(CheckInfo {
-                    line: None,
-                    col: None,
+                    line,
+                    col,
                     info: format!("在公式 {} 中：`{}` 应该写成 `\\le`", latex, cap.as_str()),
                     importance: CheckImportance::Warn,
                 });
@@ -82,8 +88,8 @@ impl LatexVisitor {
         if GE_OPERATOR.is_match(latex) {
             for cap in GE_OPERATOR.find_iter(latex) {
                 self.messages.push(CheckInfo {
-                    line: None,
-                    col: None,
+                    line,
+                    col,
                     info: format!("在公式 {} 中：`{}` 应该写成 `\\ge`", latex, cap.as_str()),
                     importance: CheckImportance::Warn,
                 });
@@ -94,8 +100,8 @@ impl LatexVisitor {
         if ELLIPSIS.is_match(latex) {
             for cap in ELLIPSIS.find_iter(latex) {
                 self.messages.push(CheckInfo {
-                    line: None,
-                    col: None,
+                    line,
+                    col,
                     info: format!(
                         "在公式 {} 中：`{}` 应该写成 `\\dots`（逗号分隔）或 `\\cdots`（运算符分隔）",
                         latex, cap.as_str()
@@ -112,8 +118,8 @@ impl LatexVisitor {
                 // 检查是否已经有反斜杠（\bmod 或 \pmod）
                 if start == 0 || latex.as_bytes().get(start - 1).is_none_or(|&b| b != b'\\') {
                     self.messages.push(CheckInfo {
-                        line: None,
-                        col: None,
+                        line,
+                        col,
                         info: format!(
                             "在公式 {} 中：`mod` 应该写成 `\\bmod` 或 `\\pmod{{}}`",
                             latex
@@ -130,8 +136,8 @@ impl LatexVisitor {
             let cleaned = latex.replace("^{*}", "").replace("^*", "");
             if MULTIPLY_STAR.is_match(&cleaned) {
                 self.messages.push(CheckInfo {
-                    line: None,
-                    col: None,
+                    line,
+                    col,
                     info: format!(
                         "在公式 {} 中：一般不用星号 `*` 做乘号，应该用 `\\times`（叉乘）、`\\cdot`（点乘）或省略",
                         latex
@@ -146,8 +152,8 @@ impl LatexVisitor {
         let without_fraction = FRACTION_CMD.replace_all(latex, "");
         if DIVIDE_SLASH.is_match(&without_fraction) {
             self.messages.push(CheckInfo {
-                line: None,
-                col: None,
+                line,
+                col,
                 info: format!(
                     "在公式 {} 中：一般不用斜杠 `/` 做除号，应该用 `\\frac{{}}{{}}` 或 `\\div`",
                     latex
@@ -160,8 +166,8 @@ impl LatexVisitor {
         if CHINESE_CHARS.is_match(latex) {
             for cap in CHINESE_CHARS.find_iter(latex) {
                 self.messages.push(CheckInfo {
-                    line: None,
-                    col: None,
+                    line,
+                    col,
                     info: format!(
                         "在公式 {} 中：不能包含汉字或中文标点 `{}`",
                         latex,
@@ -176,8 +182,8 @@ impl LatexVisitor {
         if LARGE_NUMBER.is_match(latex) {
             for cap in LARGE_NUMBER.find_iter(latex) {
                 self.messages.push(CheckInfo {
-                    line: None,
-                    col: None,
+                    line,
+                    col,
                     info: format!(
                         "在公式 {} 中：数字 `{}` 太长，建议用科学计数法（如 `10^6`）或定义为变量",
                         latex,
@@ -192,8 +198,8 @@ impl LatexVisitor {
         if COMMA_NUMBER.is_match(latex) {
             for cap in COMMA_NUMBER.find_iter(latex) {
                 self.messages.push(CheckInfo {
-                    line: None,
-                    col: None,
+                    line,
+                    col,
                     info: format!(
                         "在公式 {} 中：数字 `{}` 太长，建议用科学计数法或定义为变量",
                         latex,
@@ -207,8 +213,8 @@ impl LatexVisitor {
         // 检查前后空格
         if latex.starts_with(' ') || latex.ends_with(' ') {
             self.messages.push(CheckInfo {
-                line: None,
-                col: None,
+                line,
+                col,
                 info: format!("行内公式 {} 的前后不应该有空格（紧贴  符号）", latex),
                 importance: CheckImportance::Error,
             });
@@ -216,16 +222,18 @@ impl LatexVisitor {
     }
 }
 
-impl Visitor for LatexVisitor {
-    fn visit_inline(&mut self, inline: &Inline) {
-        if let Inline::Latex(content) = inline {
-            self.check_latex(content)
+impl Visitor for LatexVisitor<'_> {
+    fn visit_inline(&mut self, inline: &tuack_ng_parser::Inline) {
+        if let InlineKind::Latex(content) = &inline.value {
+            let pos = self.pos(inline.span);
+            self.check_latex(content, pos)
         }
         self.walk_inline(inline);
     }
-    fn visit_block(&mut self, block: &Block) {
-        if let Block::LatexBlock(content) = block {
-            self.check_latex(content)
+    fn visit_block(&mut self, block: &tuack_ng_parser::Block) {
+        if let BlockKind::LatexBlock(content) = &block.value {
+            let pos = self.pos(block.span);
+            self.check_latex(content, pos)
         }
         self.walk_block(block);
     }
@@ -247,9 +255,15 @@ impl CheckRule for Latex {
         unreachable!()
     }
 
-    fn check_ast(&self, doc: &Document, _problem_config: &ProblemConfig) -> Result<CheckResult> {
+    fn check_ast(
+        &self,
+        doc: &Document,
+        source: &str,
+        _problem_config: &ProblemConfig,
+    ) -> Result<CheckResult> {
         let mut visitor = LatexVisitor {
             messages: Vec::new(),
+            source,
         };
         doc.visit_with(&mut visitor);
         Ok(CheckResult::Tagged(visitor.messages))

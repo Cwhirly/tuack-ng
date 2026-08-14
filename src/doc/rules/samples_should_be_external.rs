@@ -5,7 +5,10 @@ use crate::{
         FormatRule,
     },
 };
-use markdown_ppp::ast::*;
+use tuack_ng_parser::ast::block::BlockKind;
+use tuack_ng_parser::ast::inline::InlineKind;
+use tuack_ng_parser::ast::{Block, Document, Inline};
+use tuack_ng_parser::span::{Spanned, Span};
 use regex::Regex;
 use std::sync::OnceLock;
 
@@ -22,13 +25,13 @@ fn output_regex() -> &'static Regex {
 fn extract_text(inlines: &[Inline]) -> String {
     inlines
         .iter()
-        .map(|inline| match inline {
-            Inline::Text(t) => t.clone(),
-            Inline::Strong(inner) => extract_text(inner),
-            Inline::Emphasis(inner) => extract_text(inner),
-            Inline::Strikethrough(inner) => extract_text(inner),
-            Inline::Code(t) => t.clone(),
-            Inline::Link(link) => extract_text(&link.children),
+        .map(|inline| match &inline.value {
+            InlineKind::Text(t) => t.clone(),
+            InlineKind::Strong(inner) => extract_text(inner),
+            InlineKind::Emphasis(inner) => extract_text(inner),
+            InlineKind::Strikethrough(inner) => extract_text(inner),
+            InlineKind::Code(t) => t.clone(),
+            InlineKind::Link(link) => extract_text(&link.children),
             _ => String::new(),
         })
         .collect()
@@ -42,10 +45,6 @@ enum SampleHeading {
 
 fn classify_inlines(inlines: &[Inline]) -> SampleHeading {
     let text = extract_text(inlines).replace(['【', '】'], "");
-    // .replace('「', "")
-    // .replace('」', "")
-    // .replace('《', "")
-    // .replace('》', "");
 
     if let Some(cap) = input_regex().captures(&text) {
         let n = cap
@@ -61,12 +60,12 @@ fn classify_inlines(inlines: &[Inline]) -> SampleHeading {
 }
 
 fn classify_block(block: &Block) -> SampleHeading {
-    match block {
-        Block::Heading(h) => classify_inlines(&h.content),
-        Block::Paragraph(inlines) => {
+    match &block.value {
+        BlockKind::Heading(h) => classify_inlines(&h.content),
+        BlockKind::Paragraph(inlines) => {
             let is_decorated = inlines.len() == 1
-                && matches!(&inlines[0], Inline::Strong(_) | Inline::Emphasis(_));
-            let is_plain = inlines.iter().all(|i| matches!(i, Inline::Text(_)));
+                && matches!(&inlines[0].value, InlineKind::Strong(_) | InlineKind::Emphasis(_));
+            let is_plain = inlines.iter().all(|i| matches!(i.value, InlineKind::Text(_)));
             if is_decorated || is_plain {
                 classify_inlines(inlines)
             } else {
@@ -81,6 +80,7 @@ pub struct ExportedSample {
     input: String,
     output: String,
     sample_item: SampleItem,
+    span: Option<Span>,
 }
 
 pub struct SamplesShouldBeExternal;
@@ -106,9 +106,9 @@ impl SamplesShouldBeExternal {
         for block in doc.blocks {
             let expected = match queue.len() {
                 0 => matches!(classify_block(&block), SampleHeading::Input(_)),
-                1 => matches!(&block, Block::CodeBlock(_)),
+                1 => matches!(&block.value, BlockKind::CodeBlock(_)),
                 2 => matches!(classify_block(&block), SampleHeading::Output),
-                3 => matches!(&block, Block::CodeBlock(_)),
+                3 => matches!(&block.value, BlockKind::CodeBlock(_)),
                 _ => unreachable!(),
             };
 
@@ -135,12 +135,12 @@ impl SamplesShouldBeExternal {
 
                 debug!("找到应该被提取的样例，id: {}", index);
 
-                let input_code = match &queue[1] {
-                    Block::CodeBlock(cb) => cb.literal.clone(),
+                let input_code = match &queue[1].value {
+                    BlockKind::CodeBlock(cb) => cb.literal.clone(),
                     _ => unreachable!(),
                 };
-                let output_code = match &queue[3] {
-                    Block::CodeBlock(cb) => cb.literal.clone(),
+                let output_code = match &queue[3].value {
+                    BlockKind::CodeBlock(cb) => cb.literal.clone(),
                     _ => unreachable!(),
                 };
 
@@ -154,11 +154,13 @@ impl SamplesShouldBeExternal {
                         args: IndexMap::new(),
                         dmk: None,
                     },
+                    // 定位到样例的第一个块（标题块）起始位置。
+                    span: queue[0].span,
                 });
 
-                new_blocks.push(markdown_ppp::ast::Block::Paragraph(vec![
-                    markdown_ppp::ast::Inline::Text(format!("{{{{ sample.text({}) }}}}", index)),
-                ]));
+                new_blocks.push(Spanned::plain(BlockKind::Paragraph(vec![Spanned::plain(
+                    InlineKind::Text(format!("{{{{ sample.text({}) }}}}", index)),
+                )])));
 
                 queue.clear();
             }
@@ -225,16 +227,17 @@ impl CheckRule for SamplesShouldBeExternal {
         unreachable!()
     }
 
-    fn check_ast(&self, doc: &Document, problem_config: &ProblemConfig) -> Result<CheckResult> {
+    fn check_ast(&self, doc: &Document, source: &str, problem_config: &ProblemConfig) -> Result<CheckResult> {
         let result = self.format(doc.to_owned(), problem_config)?;
 
         let mut messages: Vec<CheckInfo> = vec![];
 
         for item in result.1 {
             let index = item.sample_item.id as usize;
+            let (line, col) = crate::doc::span::span_to_line_col(source, item.span);
             messages.push(CheckInfo {
-                line: None,
-                col: None,
+                line,
+                col,
                 info: format!("ID 为 {} 的样例内置在了题目内", index),
                 importance: CheckImportance::Error,
             });

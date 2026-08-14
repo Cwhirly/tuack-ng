@@ -1,7 +1,7 @@
 use crate::tuack_lib::doc::rules::*;
 use crate::{config::CONFIG_FILE_NAME, doc::rules::*, prelude::*};
 use clap::Args;
-use markdown_ppp::parser::*;
+use tuack_ng_parser::parse;
 
 #[derive(Args, Debug, Clone)]
 #[command(version)]
@@ -38,11 +38,7 @@ pub fn format(problem_config: &ProblemConfig) -> Result<()> {
                 formatter.apply_markdown(markdown_text, problem_config)?;
         }
 
-        let state = MarkdownParserState::new();
-        let mut ast = match parse_markdown(state, &markdown_text) {
-            Ok(val) => val,
-            Err(_) => bail!("解析题面文件失败"),
-        };
+        let mut ast = parse(&markdown_text);
 
         if formatter.manifest().ast_formatter {
             debug!("正在应用格式化规则 {}", formatter.manifest().name);
@@ -50,10 +46,7 @@ pub fn format(problem_config: &ProblemConfig) -> Result<()> {
         }
 
         // 渲染回 Markdown，供下一轮规则使用
-        markdown_text = markdown_ppp::printer::render_markdown(
-            &ast,
-            markdown_ppp::printer::config::Config::default().with_width(10000000),
-        );
+        markdown_text = tuack_ng_parser::printers::render_markdown(&ast);
     }
 
     fs::write(&markdown_path, markdown_text)?;

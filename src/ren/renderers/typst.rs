@@ -2,16 +2,14 @@ use crate::prelude::*;
 use crate::ren::RenderQueue;
 use crate::tuack_lib::ren::base::Checker;
 use crate::tuack_lib::ren::base::Compiler;
-use markdown_ppp::ast::Document;
-use markdown_ppp::typst_printer::config::Config;
-use markdown_ppp::typst_printer::render_typst;
-use serde_json;
+use tuack_ng_parser::ast::Document;
+use tuack_ng_parser::printers::render_typst;
 use std::process::Command;
 
-mod datajson;
-
 use crate::ren::manifest::TemplateManifest;
+mod datajson;
 use datajson::{DataJson, DateInfo, Problem, SupportLanguage};
+
 pub struct TypstChecker {
     pub template_dir: PathBuf,
 }
@@ -232,7 +230,7 @@ impl TypstCompiler {
         index: usize,
     ) -> Result<()> {
         info!("生成 Typst: {}", problem.name);
-        let typst_output = render_typst(ast, Config::default().with_width(1000000));
+        let typst_output = render_typst(ast);
         let typst_output = format!("#import \"utils.typ\": *\n{}", typst_output);
 
         let typst_filename = format!("problem-{}.typ", index);
@@ -242,7 +240,7 @@ impl TypstCompiler {
     }
     pub fn convert_ast_precaution(&self, tmp_dir: &Path, ast: &Document) -> Result<()> {
         info!("生成注意事项 Typst...");
-        let typst_output = render_typst(ast, Config::default().with_width(1000000));
+        let typst_output = render_typst(ast);
         let typst_output = format!("#import \"utils.typ\": *\n{}", typst_output);
         fs::write(tmp_dir.join("precaution.typ"), typst_output)?;
         info!("生成：precaution.typ");

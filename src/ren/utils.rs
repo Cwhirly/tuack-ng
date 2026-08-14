@@ -1,5 +1,5 @@
 use crate::prelude::*;
-use markdown_ppp::ast_transform::Transform;
+use tuack_ng_parser::transform::Transform;
 use sha2::{Digest, Sha256};
 use std::ffi::OsStr;
 
@@ -45,9 +45,9 @@ pub fn process_images_with_unique_ids(src_dir: &Path, dst_dir: &Path) -> Result<
 }
 
 /// 修改图片路径，将相对路径替换为唯一 ID 路径
-pub fn process_image_urls(img_src_dir: &Path, ast: &mut markdown_ppp::ast::Document) {
+pub fn process_image_urls(img_src_dir: &Path, ast: &mut tuack_ng_parser::ast::Document) {
     if img_src_dir.exists() && img_src_dir.is_dir() {
-        *ast = ast.clone().transform_image_urls(|url| {
+        ast.transform_image_urls(|url| {
             if url.starts_with("./img/") || url.starts_with("img/") {
                 let filename = Path::new(&url)
                     .file_name()
@@ -74,20 +74,20 @@ pub fn process_image_urls(img_src_dir: &Path, ast: &mut markdown_ppp::ast::Docum
                                     format!("img/{}.{}", hash_hex, extension)
                                 }
                             } else {
-                                url
+                                url.to_string()
                             }
                         }
-                        Err(_) => url,
+                        Err(_) => url.to_string(),
                     }
                 } else {
-                    url
+                    url.to_string()
                 }
             } else {
                 msg_warn!(
                     "图片 url 不合法：{}, 不支持使用在 img/ 以外的图片，可能会产生问题。",
                     url
                 );
-                url
+                url.to_string()
             }
         });
     }

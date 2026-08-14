@@ -1,5 +1,5 @@
 use crate::prelude::*;
-use markdown_ppp::ast::Document;
+use tuack_ng_parser::ast::Document;
 
 // Format
 
@@ -53,6 +53,11 @@ pub struct CheckManifest {
 
 pub trait CheckRule {
     fn check_markdown(&self, doc: &str, problem_config: &ProblemConfig) -> Result<CheckResult>;
-    fn check_ast(&self, doc: &Document, problem_config: &ProblemConfig) -> Result<CheckResult>;
+    fn check_ast(
+        &self,
+        doc: &Document,
+        source: &str,
+        problem_config: &ProblemConfig,
+    ) -> Result<CheckResult>;
     fn manifest(&self) -> CheckManifest;
 }

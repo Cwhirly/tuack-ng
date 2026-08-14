@@ -1,7 +1,7 @@
 use crate::tuack_lib::doc::rules::*;
 use crate::{doc::rules::*, prelude::*};
 use clap::Args;
-use markdown_ppp::parser::*;
+use tuack_ng_parser::parse;
 
 #[derive(Args, Debug, Clone)]
 #[command(version)]
@@ -60,7 +60,7 @@ fn print_messages(messages: CheckResult, path: &Path, checker: &dyn CheckRule) {
                         && let Some(line) = message.line
                     {
                         msg_warn!(
-                            "在 {}:{},{} 等级 {}, 消息：{}",
+                            "在 {}:{}:{} 等级 {}, 消息：{}",
                             format!(
                                 "{}",
                                 path.strip_prefix(&gctx().config.as_ref().unwrap().config.path)
@@ -68,8 +68,8 @@ fn print_messages(messages: CheckResult, path: &Path, checker: &dyn CheckRule) {
                                     .display()
                             )
                             .cyan(),
-                            col.to_string().magenta(),
                             line.to_string().magenta(),
+                            col.to_string().magenta(),
                             match message.importance {
                                 CheckImportance::Warn => "警告".yellow().to_string(),
                                 CheckImportance::Error => "错误".red().to_string(),
@@ -104,11 +104,7 @@ pub fn check(problem_config: &ProblemConfig) -> Result<()> {
 
     let markdown_text = fs::read_to_string(&markdown_path)?;
 
-    let state = MarkdownParserState::new();
-    let ast = match parse_markdown(state, &markdown_text) {
-        Ok(val) => val,
-        Err(_) => bail!("解析题面文件失败"),
-    };
+    let ast = parse(&markdown_text);
 
     let checkers = get_checkers();
 
@@ -122,7 +118,7 @@ pub fn check(problem_config: &ProblemConfig) -> Result<()> {
 
         if checker.manifest().ast_checker {
             debug!("正在应用检查器 {}", checker.manifest().name);
-            let messages = checker.check_ast(&ast, problem_config)?;
+            let messages = checker.check_ast(&ast, &markdown_text, problem_config)?;
             print_messages(messages, &markdown_path, checker.as_ref());
         }
     }

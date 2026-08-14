@@ -30,12 +30,6 @@ indicatif-log-bridge = "0.2.3"
 lazy_static = "1.5.0"
 log = "0.4.29"
 log4rs = "1.4.0"
-markdown-ppp = { git = "https://github.com/tuack-ng/markdown-ppp.git", rev = "5b07827", features = [
-    "parser",
-    "ast-serde",
-    "ast-transform",
-    "typst-printer",
-] }
 minijinja = "2.14.0"
 mlua = { version = "0.12.0", features = [
     "lua55",
@@ -72,6 +66,9 @@ tokio = { version = "1.49.0", features = [
     "tokio-macros",
     "rt-multi-thread",
 ] }
+
+[dependencies.tuack-ng-parser]
+version = "1.0.0"
 
 [build-dependencies]
 vergen = { version = "9.1.0", features = ["build", "cargo", "rustc", "si"] }

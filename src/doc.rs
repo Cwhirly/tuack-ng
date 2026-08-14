@@ -7,6 +7,7 @@ use clap::Subcommand;
 pub mod check;
 pub mod format;
 pub mod rules;
+pub mod span;
 
 #[derive(Debug, Clone, Subcommand)]
 #[command(version)]

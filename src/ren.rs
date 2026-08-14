@@ -7,25 +7,25 @@ pub mod template;
 pub mod tools;
 pub mod unwrap;
 pub mod utils;
+use crate::ren::unwrap::unwrap_template;
 use crate::ren::processors::process_ast;
+use crate::tuack_lib::ren::base::Checker;
+use crate::tuack_lib::ren::base::Compiler;
 use crate::ren::renderers::markdown::MarkdownChecker;
 use crate::ren::renderers::markdown::MarkdownCompiler;
 use crate::ren::renderers::typst::{TypstChecker, TypstCompiler};
-use crate::ren::unwrap::unwrap_template;
-use crate::tuack_lib::ren::base::Checker;
-use crate::tuack_lib::ren::base::Compiler;
+use crate::ren::utils::{process_image_urls, process_images_with_unique_ids};
 use clap::Args;
 use indexmap::IndexMap;
 use manifest::TargetType;
 use manifest::TemplateManifest;
-use markdown_ppp::ast::Document;
-use markdown_ppp::parser::*;
+use tuack_ng_parser::ast::Document;
+use tuack_ng_parser::parse;
 use opener::open;
 use owo_colors::OwoColorize;
 use std::time::Duration;
 
-use template::render_template;
-use utils::{process_image_urls, process_images_with_unique_ids};
+use crate::ren::template::render_template;
 
 use crate::utils::filesystem::copy_dir_recursive;
 
@@ -169,15 +169,7 @@ fn ren(
             }
         };
 
-        let state = MarkdownParserState::new();
-        let mut ast = match parse_markdown(state, &content) {
-            Ok(ast) => ast,
-            Err(e) => {
-                msg_error!("解析题面文件 {} 失败：{:?}", statement_path.display(), e);
-                problem_pb.finish_with_message("遇到错误，停止处理");
-                bail!("解析题面文件失败");
-            }
-        };
+        let mut ast = parse(&content);
 
         ast = process_ast(&mut ast, &manifest.processor)?;
 
@@ -213,15 +205,8 @@ fn ren(
     if precaution_path.exists() {
         info!("处理注意事项文件：{}", precaution_path.display());
         let content = fs::read_to_string(&precaution_path)?;
-        let state = MarkdownParserState::new();
-        match parse_markdown(state, &content) {
-            Ok(ast) => {
-                renderqueue.push(RenderQueue::Precaution(ast));
-            }
-            Err(e) => {
-                msg_warn!("解析注意事项文件失败：{:?}", e);
-            }
-        }
+        let ast = parse(&content);
+        renderqueue.push(RenderQueue::Precaution(ast));
     } else {
         bail!("未找到注意事项文件：{}", precaution_path.display());
     }
