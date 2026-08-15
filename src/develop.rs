@@ -221,7 +221,7 @@ fn wrap() -> Result<()> {
             for file in filelist {
                 let sha256 = format!(
                     "{}{}",
-                    &sha256(&file)?,
+                    sha256(&file)?,
                     file.extension()
                         .map(|ext| format!(".{}", ext.to_string_lossy()))
                         .unwrap_or_default()

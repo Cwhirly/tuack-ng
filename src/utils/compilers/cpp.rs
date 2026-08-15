@@ -200,7 +200,7 @@ impl Runner for CppRunner {
 
         let program_path = self.tmp_dir.path().join(format!(
             "{}{}",
-            &self.program_name,
+            self.program_name,
             std::env::consts::EXE_SUFFIX
         ));
         if !program_path.exists() {

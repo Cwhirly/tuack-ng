@@ -52,7 +52,7 @@ pub fn process_image_urls(img_src_dir: &Path, ast: &mut tuack_ng_parser::ast::Do
                 let filename = Path::new(&url)
                     .file_name()
                     .and_then(|name| name.to_str())
-                    .unwrap_or(&url);
+                    .unwrap_or(url);
 
                 let img_path = img_src_dir.join(filename);
                 if img_path.exists() {

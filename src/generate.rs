@@ -359,11 +359,10 @@ fn gen_data(args: GenConfirmArgs) -> Result<()> {
                 })
                 .collect();
 
-            if let Some(last) = data.last_mut() {
-                if let DataItem::Single(item) = last {
+            if let Some(last) = data.last_mut()
+                && let DataItem::Single(item) = last {
                     item.score += 100 % count;
                 }
-            }
 
             let subtasks: BTreeMap<u32, ScorePolicy> = BTreeMap::from([(0, ScorePolicy::Sum)]);
 

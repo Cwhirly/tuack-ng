@@ -64,14 +64,14 @@ impl CheckRule for SamplesNotFound {
 
             let path = problem_config.path.join("sample").join(&input_path);
             if !path.exists() {
-                missing_files.push(format!("输入文件 {}", &input_path));
+                missing_files.push(format!("输入文件 {}", input_path));
             }
 
             // 检查输出文件
             let output_path = sample.output_path();
             let path = problem_config.path.join("sample").join(&output_path);
             if !path.exists() {
-                missing_files.push(format!("输出文件 {}", &output_path));
+                missing_files.push(format!("输出文件 {}", output_path));
             }
 
             if !missing_files.is_empty() {

@@ -74,7 +74,7 @@ pub fn load_config(ctx: &mut LoadContext, path: &Path) -> Result<Option<Config>>
     // 使用 ContestConfig::load 加载主配置
     let mut config = ContestConfig::load(ctx, &config_path)?;
 
-    ctx.set_name(format!("[contest] {}", &config.name));
+    ctx.set_name(format!("[contest] {}", config.name));
 
     let mut location: CurrentLocation = CurrentLocation::None;
 
@@ -98,7 +98,7 @@ pub fn load_config(ctx: &mut LoadContext, path: &Path) -> Result<Option<Config>>
             }
         };
 
-        ctx.set_name(format!("[day] {}", &dayconfig.name));
+        ctx.set_name(format!("[day] {}", dayconfig.name));
 
         if canonicalize_path.starts_with(day_path.parent().unwrap()) {
             location = CurrentLocation::Day(day_name.to_string());
@@ -122,7 +122,7 @@ pub fn load_config(ctx: &mut LoadContext, path: &Path) -> Result<Option<Config>>
                 }
             };
 
-            ctx.set_name(format!("[problem] {}", &problemconfig.name));
+            ctx.set_name(format!("[problem] {}", problemconfig.name));
             // TODO：总觉得不对劲
             problemconfig.use_pretest = dayconfig.use_pretest.or(config.use_pretest);
             problemconfig.noi_style = dayconfig.noi_style.or(config.noi_style);

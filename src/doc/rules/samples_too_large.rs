@@ -151,7 +151,7 @@ impl CheckRule for SamplesTooLarge {
                 if let Ok((exceed, violation)) = check_file_limits(&path)
                     && exceed
                 {
-                    violations.push(format!("输入文件 {} ({})", &input_path, violation.unwrap()));
+                    violations.push(format!("输入文件 {} ({})", input_path, violation.unwrap()));
                 }
 
                 // 检查输出文件
@@ -162,7 +162,7 @@ impl CheckRule for SamplesTooLarge {
                 {
                     violations.push(format!(
                         "输出文件 {} ({})",
-                        &output_path,
+                        output_path,
                         violation.unwrap()
                     ));
                 }

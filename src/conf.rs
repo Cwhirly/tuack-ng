@@ -216,7 +216,7 @@ fn conf_custom(args: &ConfCustomArgs) -> Result<()> {
                 bail!("提供的键值数量与题目数量不匹配");
             }
             for (i, (_prob_name, prob_config)) in day_config.subconfig.iter_mut().enumerate() {
-                let mut json = serde_json::to_value(&AsSerde::<ProblemConfig, FileView>::new(
+                let mut json = serde_json::to_value(AsSerde::<ProblemConfig, FileView>::new(
                     prob_config.clone(),
                 ))
                 .unwrap();
@@ -245,7 +245,7 @@ fn conf_custom(args: &ConfCustomArgs) -> Result<()> {
                 bail!("提供的键值数量与比赛日数量不匹配");
             }
             for (i, (_day_name, day_config)) in config.subconfig.iter_mut().enumerate() {
-                let mut json = serde_json::to_value(&AsSerde::<ContestDayConfig, FileView>::new(
+                let mut json = serde_json::to_value(AsSerde::<ContestDayConfig, FileView>::new(
                     day_config.clone(),
                 ))?;
                 let value = serde_json::from_str::<serde_json::Value>(&args.value[i])

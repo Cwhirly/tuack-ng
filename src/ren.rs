@@ -328,7 +328,7 @@ pub fn main(args: RenArgs) -> Result<()> {
         _ => config.path.join("statements"),
     };
 
-    info!("{}", &statements_dir.to_string_lossy());
+    info!("{}", statements_dir.to_string_lossy());
     if !statements_dir.exists() {
         info!("创建题面输出目录：{}", statements_dir.display());
         fs::create_dir(&statements_dir)?;
