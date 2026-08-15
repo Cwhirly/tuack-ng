@@ -1,4 +1,4 @@
-//! span（字节区间）→ 行列 换算工具。
+//! span（字节区间）-> 行列 换算工具。
 
 /// 根据源码计算字节偏移对应的行号（1 起）与列号（1 起）。
 pub fn offset_to_line_col(source: &str, offset: usize) -> (usize, usize) {
@@ -19,7 +19,10 @@ pub fn offset_to_line_col(source: &str, offset: usize) -> (usize, usize) {
 }
 
 /// 将 `Option<Span>` 转换为 `(Option<line>, Option<col>)`。
-pub fn span_to_line_col(source: &str, span: Option<tuack_ng_parser::Span>) -> (Option<usize>, Option<usize>) {
+pub fn span_to_line_col(
+    source: &str,
+    span: Option<tuack_ng_parser::Span>,
+) -> (Option<usize>, Option<usize>) {
     match span {
         Some(s) => {
             let (line, col) = offset_to_line_col(source, s.start);

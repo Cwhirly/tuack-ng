@@ -4,17 +4,19 @@ use std::path::PathBuf;
 use async_trait::async_trait;
 use tokio::fs::File;
 
-use crate::config::{ExpandedDataItem, ExpandedSampleItem};
-use crate::tuack_lib::data::{AsyncReader, Data};
+use crate::config::{DmkConfig, ExpandedDataItem, ExpandedSampleItem};
+use crate::prelude::*;
+use crate::tuack_lib::data::{AsyncReader, Data, DmkData};
+use crate::tuack_lib::utils::testlib::Arg;
 /// 被包装的数据来源引用
+#[derive(Clone)]
 enum TestItemRef<'a> {
     Data(&'a ExpandedDataItem),
     Sample(&'a ExpandedSampleItem),
 }
 
-/// 从文件系统读取的测试数据。
-///
-/// 持有基础目录与对配置项的引用，不拷贝数据，也不修改配置结构。
+/// 从文件系统读取的测试数据，持有基础目录与对配置项的引用。
+#[derive(Clone)]
 pub struct FsTestData<'a> {
     base_dir: PathBuf,
     item: TestItemRef<'a>,
@@ -47,6 +49,34 @@ impl<'a> FsTestData<'a> {
             TestItemRef::Data(item) => &item.output,
             TestItemRef::Sample(item) => &item.output,
         }
+    }
+
+    /// 该测试点的生成行为。
+    pub fn dmk(&self) -> DmkConfig {
+        match &self.item {
+            TestItemRef::Data(item) => item.dmk,
+            TestItemRef::Sample(item) => item.dmk,
+        }
+    }
+
+    /// 该测试点是否生成输入。
+    pub fn gen_input(&self) -> bool {
+        matches!(self.dmk(), DmkConfig::Input | DmkConfig::On)
+    }
+
+    /// 该测试点是否生成输出。
+    pub fn gen_output(&self) -> bool {
+        matches!(self.dmk(), DmkConfig::Output | DmkConfig::On)
+    }
+
+    /// 输入文件的完整路径。
+    pub fn input_path(&self) -> PathBuf {
+        self.base_dir.join(self.input_name())
+    }
+
+    /// 输出文件的完整路径。
+    pub fn output_path(&self) -> PathBuf {
+        self.base_dir.join(self.answer_name())
     }
 
     /// 该测试点的满分 (样例约定每点 1 分)。
@@ -84,5 +114,27 @@ impl Data for FsTestData<'_> {
     async fn answer(&self) -> io::Result<Box<dyn AsyncReader>> {
         let f = File::open(self.base_dir.join(self.answer_name())).await?;
         Ok(Box::new(f))
+    }
+}
+
+#[async_trait]
+impl DmkData for FsTestData<'_> {
+    fn args(&self) -> &IndexMap<String, Arg> {
+        match &self.item {
+            TestItemRef::Data(item) => &item.args,
+            TestItemRef::Sample(item) => &item.args,
+        }
+    }
+
+    async fn write_input(&self, mut input: Box<dyn AsyncReader>) -> Result<()> {
+        let mut f = File::create(self.input_path()).await?;
+        tokio::io::copy(&mut *input, &mut f).await?;
+        Ok(())
+    }
+
+    async fn write_output(&self, mut output: Box<dyn AsyncReader>) -> Result<()> {
+        let mut f = File::create(self.output_path()).await?;
+        tokio::io::copy(&mut *output, &mut f).await?;
+        Ok(())
     }
 }

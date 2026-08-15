@@ -1,8 +1,11 @@
-use crate::config::ExpandedDataItem;
 use crate::prelude::*;
 
-/// 从字符串解析测试点，返回匹配的 ExpandedDataItem 列表
-pub fn parse_test_object(s: &str, all_items: &[ExpandedDataItem]) -> Result<Vec<ExpandedDataItem>> {
+/// 从字符串解析测试点，返回匹配的测试点列表。
+pub fn parse_test_object<T: Clone>(
+    s: &str,
+    all_items: &[T],
+    id_of: impl Fn(&T) -> u32,
+) -> Result<Vec<T>> {
     let s = s.trim().to_lowercase();
 
     if s == "all" {
@@ -34,7 +37,7 @@ pub fn parse_test_object(s: &str, all_items: &[ExpandedDataItem]) -> Result<Vec<
 
             // 遍历查找在范围内的测试点
             for item in all_items.iter() {
-                if item.id >= start && item.id <= end {
+                if id_of(item) >= start && id_of(item) <= end {
                     result.push(item.clone());
                 }
             }
@@ -44,7 +47,7 @@ pub fn parse_test_object(s: &str, all_items: &[ExpandedDataItem]) -> Result<Vec<
                 .with_context(|| anyhow!("无效的测试点 ID: {}", part))?;
 
             // 遍历查找匹配的测试点
-            if let Some(item) = all_items.iter().find(|item| item.id == id) {
+            if let Some(item) = all_items.iter().find(|item| id_of(item) == id) {
                 result.push(item.clone());
             }
         }

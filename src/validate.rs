@@ -3,7 +3,6 @@ use indicatif::ProgressBar;
 use owo_colors::OwoColorize;
 use std::time::Duration;
 
-use crate::config::ExpandedDataItem;
 use crate::data::fs::FsTestData;
 use crate::prelude::*;
 use crate::tuack_lib::data::Data;
@@ -85,34 +84,11 @@ async fn validate_problem(
     object: &str,
     in_problem: bool,
 ) -> Result<()> {
-    let selected: Vec<ExpandedDataItem> = match target {
-        Target::Data => problem_config.runtime.data.clone(),
-        Target::Sample => problem_config
-            .samples
-            .iter()
-            .map(|item| ExpandedDataItem {
-                id: item.id,
-                score: 1,
-                subtask: 0,
-                input: item.input_path(),
-                output: item.output_path(),
-                orig_args: item.args.clone(),
-                args: item.args.clone(),
-                dmk: item.dmk.unwrap_or(problem_config.dmk),
-            })
-            .collect(),
-    };
-
-    let selected = crate::utils::test_object::parse_test_object(object, &selected)?;
-
     let data_items: Vec<FsTestData<'_>> = match target {
         Target::Data => problem_config.test_data(),
         Target::Sample => problem_config.sample_data(),
     };
-    let data_items = data_items
-        .into_iter()
-        .filter(|item| selected.iter().any(|sel| sel.id == item.id()))
-        .collect::<Vec<_>>();
+    let data_items = crate::utils::test_object::parse_test_object(object, &data_items, FsTestData::id)?;
 
     let validator = match compile_validator(problem_config, target) {
         Ok(v) => v,

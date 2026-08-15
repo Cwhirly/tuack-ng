@@ -243,7 +243,7 @@ fn apply_merge_rules(data: &[Vec<String>], rules: &[MergeRule]) -> Vec<Vec<Strin
     let col_len = data[0].len();
     let mut result = data.to_vec();
 
-    // 收集需要合并的列索引（1-indexed → 0-indexed）
+    // 收集需要合并的列索引（1-indexed -> 0-indexed）
     let mut merge_cols = Vec::new();
     for rule in rules {
         if rule.merge_row {

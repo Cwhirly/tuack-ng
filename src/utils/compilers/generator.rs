@@ -11,7 +11,6 @@ pub struct CppGenerator {
     tmp_dir: TempDir,
     source: PathBuf,
     compile_args: String,
-    program_name: String,
     binary_path: Option<PathBuf>,
     dependencies: IndexMap<String, Vec<u8>>,
 }
@@ -20,11 +19,9 @@ impl CppGenerator {
     pub fn new(
         source: impl Into<PathBuf>,
         compile_args: &IndexMap<String, String>,
-        program_name: impl Into<String>,
         dependencies: IndexMap<String, Vec<u8>>,
     ) -> Result<Self> {
         let source = source.into();
-        let program_name = program_name.into();
         let tmp_dir = TempDir::with_prefix("tuack-ng-generator-")?;
         let ext = source
             .extension()
@@ -38,7 +35,6 @@ impl CppGenerator {
                 .get(&ext)
                 .cloned()
                 .unwrap_or_else(|| "-O2 -std=c++17".to_string()),
-            program_name,
             binary_path: None,
             dependencies,
         })
@@ -55,8 +51,7 @@ impl Generator for CppGenerator {
         let source_target = self
             .tmp_dir
             .path()
-            .join(&self.program_name)
-            .with_extension(self.source.extension().unwrap());
+            .join(self.source.file_name().context("无效的源文件名")?);
         fs::copy(&self.source, &source_target)?;
 
         for (name, content) in &self.dependencies {

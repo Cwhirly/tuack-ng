@@ -1,15 +1,24 @@
-use crate::config::ExpandedDataItem;
-use crate::context::{CurrentLocation, gctx};
-use crate::prelude::*;
-use crate::tuack_lib::dmk::{DmkReporter, DmkResult, dmk};
-use crate::utils::compilers::generator::CppGenerator;
-use crate::utils::test_object::parse_test_object;
+use std::fmt;
+use std::str::FromStr;
+use std::time::Duration;
+
 use clap::Args;
 use clap::ValueEnum;
 use indicatif::ProgressBar;
 use owo_colors::OwoColorize;
-use std::fmt;
-use std::time::Duration;
+use rand::Rng;
+
+use crate::context::{CurrentLocation, gctx};
+use crate::data::fs::FsTestData;
+use crate::prelude::*;
+use crate::tuack_lib::dmk::{DmkParams, DmkSession};
+use crate::tuack_lib::utils::testlib::{Generator, Validator};
+use crate::utils::compilers::cpp::CppRunner;
+use crate::utils::compilers::general::GeneralRunner;
+use crate::utils::compilers::generator::CppGenerator;
+use crate::utils::random::gen_rnd;
+use crate::utils::test_object::parse_test_object;
+use crate::validate::compile_validator;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, ValueEnum)]
 pub enum Target {
@@ -28,116 +37,7 @@ impl fmt::Display for Target {
     }
 }
 
-impl DmkResult {
-    fn colored_status(&self) -> String {
-        match self {
-            DmkResult::Gen => "GEN".green().to_string(),
-            DmkResult::Regen => "REGEN".green().bold().to_string(),
-            DmkResult::Reset => "RESET".cyan().bold().to_string(),
-            DmkResult::Skip => "SKIP".to_string(),
-            DmkResult::Empty => "EMPTY".magenta().bold().to_string(),
-            DmkResult::Fail(_) => "FAIL".red().bold().to_string(),
-        }
-    }
-
-    fn error(&self) -> Option<&anyhow::Error> {
-        match self {
-            DmkResult::Fail(e) => Some(e),
-            _ => None,
-        }
-    }
-}
-
-struct CliDmkReporter {
-    std_compile_pb: ProgressBar,
-    dmk_compile_pb: ProgressBar,
-    dmk_pb: ProgressBar,
-}
-
-impl CliDmkReporter {
-    fn new() -> Self {
-        Self {
-            std_compile_pb: gctx().multiprogress.add(ProgressBar::new_spinner()),
-            dmk_compile_pb: gctx().multiprogress.add(ProgressBar::new_spinner()),
-            dmk_pb: gctx().multiprogress.add(ProgressBar::new(0)),
-        }
-    }
-}
-
-impl DmkReporter for CliDmkReporter {
-    fn compiling_dmk(&self) {
-        self.dmk_compile_pb
-            .enable_steady_tick(Duration::from_millis(100));
-        self.dmk_compile_pb.set_message("编译数据生成器");
-    }
-
-    fn compiled_dmk(&self) {
-        self.dmk_compile_pb.finish_and_clear();
-    }
-
-    fn compiling_std(&self) {
-        self.std_compile_pb
-            .enable_steady_tick(Duration::from_millis(100));
-        self.std_compile_pb.set_message("编译标程");
-    }
-
-    fn compiled_std(&self) {
-        self.std_compile_pb.finish_and_clear();
-    }
-
-    fn start_dmk(&self, size: u32) {
-        self.dmk_pb.set_style(
-            indicatif::ProgressStyle::default_bar()
-                .template("  [{bar:40.cyan/blue}] {msg}")
-                .unwrap()
-                .progress_chars("=> "),
-        );
-        self.dmk_pb.set_length(size as u64);
-    }
-
-    fn start_item(&self, id: u32) {
-        self.dmk_pb.set_message(format!(
-            "{}/{} | 正在生成数据点 #{}",
-            self.dmk_pb.position(),
-            self.dmk_pb.length().unwrap(),
-            id
-        ));
-    }
-
-    fn generate_input(&self, id: u32, status: &DmkResult) {
-        msg_item!(
-            status.colored_status(),
-            "测试点 {} {}",
-            id.to_string().cyan(),
-            "输入".bold()
-        );
-        if let Some(e) = status.error() {
-            msg_error!("{}", e);
-        }
-    }
-
-    fn generate_output(&self, id: u32, status: &DmkResult) {
-        msg_item!(
-            status.colored_status(),
-            "测试点 {} {}",
-            id.to_string().cyan(),
-            "输出".bold()
-        );
-        if let Some(e) = status.error() {
-            msg_error!("{}", e);
-        }
-    }
-
-    fn progress(&self, position: u32) {
-        self.dmk_pb.set_position((position + 1) as u64);
-    }
-
-    fn completed(&self) {
-        self.dmk_pb.finish_with_message("数据生成完成！");
-    }
-}
-
-#[derive(Debug, Clone, ValueEnum)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, ValueEnum)]
 pub enum DmkCommand {
     /// 生成（未生成的）数据
     Gen,
@@ -167,27 +67,217 @@ pub struct DmkArgs {
     validate: Option<bool>,
 }
 
-use crate::tuack_lib::dmk as tuack_dmk;
+/// 数据点生成结果（展示状态）。
+#[derive(Debug)]
+pub enum DmkResult {
+    /// 生成数据
+    Gen,
+    /// 重新生成数据
+    Regen,
+    /// 重置种子并重新生成数据
+    Reset,
+    /// 跳过
+    Skip,
+    /// 建造空文件
+    Empty,
+    /// 失败
+    Fail(anyhow::Error),
+}
 
-// 转换 Target
-impl From<Target> for tuack_dmk::Target {
-    fn from(value: Target) -> Self {
-        match value {
-            Target::Data => tuack_dmk::Target::Data,
-            Target::Sample => tuack_dmk::Target::Sample,
+impl DmkResult {
+    fn colored_status(&self) -> String {
+        match self {
+            DmkResult::Gen => "GEN".green().to_string(),
+            DmkResult::Regen => "REGEN".green().bold().to_string(),
+            DmkResult::Reset => "RESET".cyan().bold().to_string(),
+            DmkResult::Skip => "SKIP".to_string(),
+            DmkResult::Empty => "EMPTY".magenta().bold().to_string(),
+            DmkResult::Fail(_) => "FAIL".red().bold().to_string(),
+        }
+    }
+
+    fn error(&self) -> Option<&anyhow::Error> {
+        match self {
+            DmkResult::Fail(e) => Some(e),
+            _ => None,
         }
     }
 }
 
-// 转换 DmkCommand
-impl From<DmkCommand> for tuack_dmk::DmkCommand {
-    fn from(value: DmkCommand) -> Self {
-        match value {
-            DmkCommand::Gen => tuack_dmk::DmkCommand::Gen,
-            DmkCommand::Regen => tuack_dmk::DmkCommand::Regen,
-            DmkCommand::Reset => tuack_dmk::DmkCommand::Reset,
+impl From<DmkCommand> for DmkResult {
+    fn from(action: DmkCommand) -> Self {
+        match action {
+            DmkCommand::Gen => DmkResult::Gen,
+            DmkCommand::Regen => DmkResult::Regen,
+            DmkCommand::Reset => DmkResult::Reset,
         }
     }
+}
+
+/// 打印单个数据点的生成状态
+fn report_status(id: u32, kind: &str, status: &DmkResult) {
+    msg_item!(
+        status.colored_status(),
+        "测试点 {} {}",
+        id.to_string().cyan(),
+        kind.bold()
+    );
+    if let Some(e) = status.error() {
+        msg_error!("{}", e);
+    }
+}
+
+/// 生成单个数据点的输入，返回展示状态。
+async fn gen_input(
+    session: &mut DmkSession<'_>,
+    item: &FsTestData<'_>,
+    seed: u64,
+    action: DmkCommand,
+) -> Result<DmkResult> {
+    let exists = tokio::fs::try_exists(item.input_path())
+        .await
+        .unwrap_or(false);
+
+    if !((!matches!(action, DmkCommand::Gen) || !exists) && item.gen_input()) {
+        if exists {
+            return Ok(DmkResult::Skip);
+        }
+        tokio::fs::write(item.input_path(), b"").await?;
+        return Ok(DmkResult::Empty);
+    }
+
+    match session.gen_input(item, seed).await {
+        Ok(()) => Ok(action.into()),
+        Err(e) => Ok(DmkResult::Fail(e)),
+    }
+}
+
+/// 用标程生成单个数据点的输出，返回展示状态。
+async fn gen_output(
+    session: &mut DmkSession<'_>,
+    item: &FsTestData<'_>,
+    action: DmkCommand,
+) -> Result<DmkResult> {
+    let exists = tokio::fs::try_exists(item.output_path())
+        .await
+        .unwrap_or(false);
+
+    if !((!matches!(action, DmkCommand::Gen) || !exists) && item.gen_output()) {
+        if exists {
+            return Ok(DmkResult::Skip);
+        }
+        tokio::fs::write(item.output_path(), b"").await?;
+        return Ok(DmkResult::Empty);
+    }
+
+    match session.gen_output(item).await {
+        Ok(()) => Ok(action.into()),
+        Err(e) => Ok(DmkResult::Fail(e)),
+    }
+}
+
+/// 加载已有种子（文件不存在或无效均视为空）
+async fn load_seeds(target_dir: &Path) -> BTreeMap<u32, u64> {
+    let seed_file = target_dir.join(".seed");
+    if let Ok(seed_str) = tokio::fs::read_to_string(&seed_file).await {
+        serde_json::from_str(&seed_str).unwrap_or_else(|e| {
+            msg_warn!(".seed 文件无效，重新生成：{}", e);
+            BTreeMap::new()
+        })
+    } else {
+        BTreeMap::new()
+    }
+}
+
+/// 合并种子：`force`（Reset）时强制重新生成，否则只补缺失
+fn merge_seeds(seeds: &mut BTreeMap<u32, u64>, items: &[FsTestData], force: bool) -> Result<()> {
+    let mut rng = gen_rnd()?;
+    for item in items {
+        let id = item.id();
+        if force {
+            seeds.insert(id, rng.random::<u64>());
+        } else {
+            seeds.entry(id).or_insert_with(|| rng.random::<u64>());
+        }
+    }
+    Ok(())
+}
+
+/// 保存种子
+fn save_seed(target_dir: &Path, seeds: &BTreeMap<u32, u64>) -> Result<()> {
+    let seed_file = target_dir.join(".seed");
+    std::fs::write(seed_file, serde_json::to_string_pretty(seeds)?)?;
+    Ok(())
+}
+
+/// 查找标程（tests 中期望得分 == 100 的文件）
+fn find_std(problem: &ProblemConfig) -> Result<PathBuf> {
+    for (name, case) in &problem.tests {
+        if let ExpectedScore::Single(str) = &case.expected
+            && str.replace(' ', "") == "==100"
+            && problem.path.join(PathBuf::from(&case.path)).exists()
+        {
+            info!("找到标称 {name}, 位置 {}", case.path);
+            return Ok(problem.path.join(PathBuf::from(&case.path)));
+        }
+    }
+
+    bail!("未找到标程文件")
+}
+
+/// 构造标程运行器
+fn build_std_runner(
+    std_path: &Path,
+    day_config: &ContestDayConfig,
+    problem_config: &ProblemConfig,
+) -> Result<Box<dyn Runner>> {
+    let mut runner: Box<dyn Runner> = match std_path
+        .extension()
+        .context("文件无后缀名")?
+        .to_string_lossy()
+        .to_string()
+        .as_str()
+    {
+        "cpp" => Box::new(CppRunner::new(
+            std_path,
+            &day_config.compile,
+            problem_config.name.clone(),
+        )?),
+        _ => Box::new(GeneralRunner::new(
+            std_path,
+            &day_config.compile,
+            problem_config.name.clone(),
+        )?),
+    };
+
+    if problem_config.problem_type == ProblemType::Interactive && runner.manifest().interactive {
+        let interactive = problem_config.interactive.as_ref().unwrap();
+
+        let resolve_path = |path: &String| -> Result<PathBuf> {
+            let p = PathBuf::from_str(path)?;
+            Ok(if p.is_absolute() {
+                p
+            } else {
+                dunce::canonicalize(problem_config.path.join(p))?
+            })
+        };
+        let grader_path = match &interactive.dmk_grader {
+            Some(dmk_grader) => resolve_path(dmk_grader)?,
+            None => resolve_path(&interactive.grader)?,
+        };
+        let header_path = resolve_path(&interactive.header)?;
+
+        if !grader_path.exists() {
+            bail!("grader 不存在")
+        }
+        if !header_path.exists() {
+            bail!("header 不存在")
+        }
+
+        runner.set_interactive(&grader_path, &header_path)?;
+    }
+
+    Ok(runner)
 }
 
 pub async fn main(args: DmkArgs) -> Result<()> {
@@ -211,24 +301,11 @@ pub async fn main(args: DmkArgs) -> Result<()> {
             bail!("本命令只能在题目目录下执行");
         };
 
-    let data_items: Vec<ExpandedDataItem> = match &args.target {
-        Target::Data => current_problem.runtime.data.clone(),
-        Target::Sample => current_problem
-            .runtime
-            .samples
-            .iter()
-            .map(|item| ExpandedDataItem {
-                id: item.id,
-                score: 0,
-                subtask: 0,
-                input: item.input.clone(),
-                output: item.output.clone(),
-                orig_args: item.args.clone(),
-                args: item.args.clone(),
-                dmk: item.dmk,
-            })
-            .collect(),
+    let selected: Vec<FsTestData> = match &args.target {
+        Target::Data => current_problem.test_data(),
+        Target::Sample => current_problem.sample_data(),
     };
+    let selected = parse_test_object(&args.object, &selected, FsTestData::id)?;
 
     let generator_config = match &args.target {
         Target::Data => current_problem
@@ -263,32 +340,100 @@ pub async fn main(args: DmkArgs) -> Result<()> {
         deps.insert(name, content);
     }
 
-    let mut generator = CppGenerator::new(&gen_path, &current_day.compile, "gen", deps)?;
+    // 编译数据生成器
+    let gen_compile_pb = gctx().multiprogress.add(ProgressBar::new_spinner());
+    gen_compile_pb.enable_steady_tick(Duration::from_millis(100));
+    gen_compile_pb.set_message("编译数据生成器");
+    let mut generator = CppGenerator::new(&gen_path, &current_day.compile, deps)?;
+    let gen_result = generator.prepare();
+    gen_compile_pb.finish_and_clear();
+    gen_result.context("数据生成器编译失败")?;
 
     let effective_validate = args.validate.unwrap_or(generator_config.validate);
-    let validator: Option<Box<dyn crate::tuack_lib::utils::testlib::Validator>> =
-        if effective_validate {
-            Some(
-                crate::validate::compile_validator(current_problem, args.target.into())
-                    .with_context(|| {
-                        format!("题目 {} 的 Validator 不可用", current_problem.name)
-                    })?,
-            )
+    let validator: Option<Box<dyn Validator>> = if effective_validate {
+        Some(
+            compile_validator(current_problem, args.target.into())
+                .with_context(|| format!("题目 {} 的 Validator 不可用", current_problem.name))?,
+        )
+    } else {
+        None
+    };
+
+    let target_dir = match &args.target {
+        Target::Data => current_problem.path.join("data"),
+        Target::Sample => current_problem.path.join("sample"),
+    };
+    if !target_dir.exists() {
+        std::fs::create_dir_all(&target_dir)?;
+        info!("创建目标目录：{}", target_dir.display());
+    }
+
+    // 种子：加载 -> 合并（Reset 强制重生成）-> 结束时保存
+    let mut seeds = load_seeds(&target_dir).await;
+    merge_seeds(
+        &mut seeds,
+        &selected,
+        matches!(args.action, DmkCommand::Reset),
+    )?;
+
+    if selected.is_empty() {
+        msg_warn!("没有需要生成的数据");
+        return Ok(());
+    }
+
+    // 标程：查找 -> 构造 -> 交互配置 -> 编译
+    let std_path = find_std(current_problem)?;
+    info!("找到标程：{}", std_path.display());
+    let mut runner = build_std_runner(&std_path, current_day, current_problem)?;
+
+    let std_compile_pb = gctx().multiprogress.add(ProgressBar::new_spinner());
+    std_compile_pb.enable_steady_tick(Duration::from_millis(100));
+    std_compile_pb.set_message("编译标程");
+    let std_result = runner.prepare_async().await;
+    std_compile_pb.finish_and_clear();
+    std_result?;
+
+    let params = DmkParams {
+        problem_name: current_problem.name.clone(),
+        file_io: current_problem.file_io.unwrap_or(true),
+    };
+    let mut session = DmkSession::new(&mut *runner, &mut generator, validator.as_deref(), params);
+
+    let dmk_pb = gctx()
+        .multiprogress
+        .add(ProgressBar::new(selected.len() as u64));
+    dmk_pb.set_style(
+        indicatif::ProgressStyle::default_bar()
+            .template("  [{bar:40.cyan/blue}] {msg}")
+            .unwrap()
+            .progress_chars("=> "),
+    );
+
+    for item in &selected {
+        dmk_pb.set_message(format!(
+            "{}/{} | 正在生成数据点 #{}",
+            dmk_pb.position(),
+            dmk_pb.length().unwrap(),
+            item.id()
+        ));
+
+        let seed = *seeds.get(&item.id()).unwrap();
+        let status = gen_input(&mut session, item, seed, args.action).await?;
+        report_status(item.id(), "输入", &status);
+
+        if matches!(status, DmkResult::Fail(_)) {
+            report_status(item.id(), "输出", &DmkResult::Skip);
         } else {
-            None
-        };
+            let status = gen_output(&mut session, item, args.action).await?;
+            report_status(item.id(), "输出", &status);
+        }
 
-    let reporter = CliDmkReporter::new();
+        dmk_pb.inc(1);
+    }
 
-    dmk(
-        &reporter,
-        &args.target.into(),
-        &args.action.into(),
-        &parse_test_object(&args.object, &data_items)?,
-        current_problem,
-        current_day,
-        &mut generator,
-        validator.as_deref(),
-    )
-    .await
+    dmk_pb.finish_with_message("数据生成完成！");
+
+    save_seed(&target_dir, &seeds)?;
+
+    Ok(())
 }

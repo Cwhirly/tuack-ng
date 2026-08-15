@@ -361,7 +361,7 @@ pub async fn test_problem(
             }
         }
 
-        // 编译失败 → 前端直接记录 CE，不进入评测
+        // 编译失败 -> 前端直接记录 CE，不进入评测
         if let Err(e) = runner.prepare() {
             msg_item!("CE".yellow().bold(), "编译错误");
             msg_error!("{}", e);
