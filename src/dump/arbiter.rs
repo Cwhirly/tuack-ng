@@ -26,7 +26,7 @@ impl ArbiterDumper {
     }
 
     /// 生成 filter 可执行文件：有自定义 SPJ 则编译 checker（经 handle 取源码），
-    /// 否则编译默认比较器源码；编译失败时 `None`（不产生文件），资源缺失则失败。
+    /// 否则编译默认比较器源码；编译失败时 `None`（不产生文件），资源缺失则失败
     async fn build_filter(
         &self,
         doc: &crate::tuack_lib::dump::DumpDocument,

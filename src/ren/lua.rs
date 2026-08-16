@@ -132,7 +132,7 @@ fn build_tools(lua: &mut Lua) -> mlua::Result<mlua::Table> {
                 Ok(tools::cases(&items))
             })?,
         ),
-        // MarkDown 辅助
+        // Markdown 辅助
         (
             "italic",
             lua.create_function(|_, text: String| Ok(format!("*{}*", text)))?,

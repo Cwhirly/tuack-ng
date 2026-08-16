@@ -127,7 +127,7 @@ fn build_problem_meta(problem: &ProblemConfig, day_config: &ContestDayConfig) ->
     }
 }
 
-/// 构造一天的可渲染文档：读题面 -> 模板展开 -> 解析 -> 处理器 -> 图片扫描登记
+/// 构造一天的可渲染文档：读题面 -> 模板展开 -> 解析 -> 处理器 -> 图片扫描登记。
 fn build_render_document(
     config: &ContestConfig,
     manifest: &TemplateManifest,

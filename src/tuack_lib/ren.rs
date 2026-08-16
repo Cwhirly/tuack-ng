@@ -1,4 +1,4 @@
-//! 渲染抽象。
+//! 渲染抽象
 //!
 //! 渲染指：以数据变换为核心的操作，旨在将原文档转换为各种形式。
 //!
@@ -15,7 +15,7 @@ pub use document::{
 
 use crate::prelude::*;
 
-/// 渲染器：`RenderDocument -> (主产物相对路径，产物文件列表)`
+/// 渲染器：`RenderDocument -> (主产物相对路径，产物文件列表)`。
 #[async_trait]
 pub trait Renderer: Send + Sync {
     async fn render(&self, doc: &RenderDocument) -> Result<(PathBuf, Vec<OutputFile>)>;

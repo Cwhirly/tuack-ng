@@ -32,7 +32,7 @@ impl Visitor for ImageCollector {
     }
 }
 
-/// 检查并重写文档中的图片 URL，返回 `(重写后的 AST, 原始 url -> 目标 URL 映射)`。
+/// 检查并重写文档中的图片 URL，返回 `(重写后的 AST, 原始 URL -> 目标 URL 映射)`。
 /// 映射以 `PathBuf` 承载，`AssetProvider::load` 直接消费。
 pub fn rewrite_images(ast: Document, idx: u64) -> Result<(Document, IndexMap<PathBuf, PathBuf>)> {
     use std::path::Component;

@@ -4,8 +4,8 @@ use crate::tuack_lib::data::AsyncReader;
 
 /// 渲染/导出产物：文件（路径 + 字节流）或空目录。
 ///
-/// 产物（图片/PDF/数据）可能很大，文件以流承载，由消费方 `tokio::io::copy` 流式落盘；
-/// 空目录用于表达"该目录必须存在但可能没有文件"（如 Arbiter 的 final/players/result）。
+/// 产物（图片/PDF/数据）可能很大，文件以流承载，不整体进内存；
+/// `Dir` 变体表达"该目录必须存在但可能没有文件"（如 Arbiter 的 final/players/result）。
 pub enum OutputFile {
     /// 文件：相对路径 + 字节流
     File {

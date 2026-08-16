@@ -3,7 +3,7 @@ use crate::tuack_lib::data::AsyncReader;
 use crate::tuack_lib::utils::asset::AssetProvider;
 
 /// 前端资源提供方：登记 `题目编号 -> 题目路径` 映射，
-/// `load` 按 idx + 相对路径 join 打开文件返回流。
+/// `load` 按 idx + 相对路径 join 打开文件返回流
 ///
 /// 供 ren（图片）与 dump（数据/样例）共用，惰性打开不预载。
 pub struct FsAssetProvider {

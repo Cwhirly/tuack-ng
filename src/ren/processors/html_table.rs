@@ -105,7 +105,7 @@ fn write_inlines<'a>(mut node: Node<'a>, inlines: &[tuack_ng_parser::Inline]) ->
                 a = write_inlines(a, &link.children)?;
             }
             InlineKind::LinkReference(_) => {
-                msg_warn!("在 Html 中不支持引用式链接");
+                msg_warn!("在 HTML 中不支持引用式链接");
             }
             InlineKind::Image(image) => {
                 let mut img = node.img();
@@ -140,7 +140,7 @@ fn write_inlines<'a>(mut node: Node<'a>, inlines: &[tuack_ng_parser::Inline]) ->
                 a_node.write_str(&a.url)?;
             }
             InlineKind::FootnoteReference(_) => {
-                msg_warn!("在 Html 中不支持脚注引用");
+                msg_warn!("在 HTML 中不支持脚注引用");
             }
             InlineKind::Empty => {
                 // 空元素，什么都不做

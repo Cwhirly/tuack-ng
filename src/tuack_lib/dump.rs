@@ -2,7 +2,7 @@
 //!
 //! - `DumpDocument` 是不可变输入（day 级纯数据），`Dumper::dump` 产出 `Vec<OutputFile>`。
 //! - dumper 不访问配置对象；用户资源（data/sample/down/checker）一律经 `AssetProvider` 获取。
-//! - dumper 可进行为生成导出产物所必需的内部 I/O（写临时目录、编译 checker 等）。
+//! - dumper 可进行为生成导出产物所必需的内部 I/O（写临时目录、编译 checker 等）
 
 use bytesize::ByteSize;
 use std::collections::BTreeMap;
@@ -25,11 +25,8 @@ pub enum ScorePolicy {
 /// day 级导出配置
 #[derive(Debug, Clone)]
 pub struct DumpConfig {
-    /// 比赛名称
     pub contest_name: String,
-    /// 天名称
     pub day_name: String,
-    /// 天序号
     pub dayidx: usize,
     /// 编译选项（语言，选项）
     pub compile: Vec<(String, String)>,
@@ -88,7 +85,7 @@ pub struct DumpProblem {
     pub checker: Option<PathBuf>,
 }
 
-/// 导出文档：dumper 的唯一输入（day 级）
+/// 导出文档：dumper 的唯一输入（day 级）。
 pub struct DumpDocument {
     pub config: DumpConfig,
     pub problems: Vec<DumpProblem>,
@@ -96,7 +93,7 @@ pub struct DumpDocument {
     pub assets: Box<dyn AssetProvider>,
 }
 
-/// 导出器：`DumpDocument -> 产物文件列表`
+/// 导出器：`DumpDocument -> 产物文件列表`。
 #[async_trait]
 pub trait Dumper: Send + Sync {
     async fn dump(&self, doc: &DumpDocument) -> Result<Vec<OutputFile>>;

@@ -37,7 +37,7 @@ pub struct DumpArgs {
     pub target: Target,
 }
 
-/// 递归枚举 down/ 目录的非样例附加文件。
+/// 递归枚举 down/ 目录的非样例附加文件
 /// `rel` 为相对 down 根的路径，样例排除用"相对各自资源根的路径"比较。
 fn collect_extra_down(
     dir: &Path,
@@ -65,7 +65,7 @@ fn collect_extra_down(
     Ok(())
 }
 
-/// 从 config 提取 day 级导出文档（前端构造纯数据，dumper 不接触 config 类型）
+/// 从 config 提取 day 级导出文档（前端构造纯数据，dumper 不接触 config 类型）。
 fn build_dump_document(
     contest: &ContestConfig,
     day: &ContestDayConfig,

@@ -17,12 +17,10 @@ pub enum ProblemType {
 pub struct ProblemMeta {
     /// 题目 (英文) 名称
     pub name: String,
-    /// 题目标题
     pub title: String,
     pub problem_type: ProblemType,
     pub time_limit: Duration,
     pub memory_limit: ByteSize,
-    /// 测试点数量
     pub testcase: usize,
     /// 各测试点分数是否相等
     pub point_equal: bool,
@@ -44,26 +42,17 @@ pub struct DateInfo {
     pub end: [u32; 6],
 }
 
-/// 渲染配置，包含渲染所需的全部信息
+/// 渲染配置，包含渲染所需的全部信息。
 #[derive(Debug, Clone)]
 pub struct RenConfig {
-    /// 比赛标题
     pub title: String,
-    /// 比赛副标题
     pub short_title: String,
-    /// 天目录名
     pub day_key: String,
-    /// 天标题
     pub dayname: String,
-    /// 起止时间
     pub date: Option<DateInfo>,
-    /// 是否有 pretest
     pub use_pretest: bool,
-    /// NOI 风格
     pub noi_style: bool,
-    /// 文件 IO
     pub file_io: bool,
-    /// 支持的语言
     pub support_languages: Vec<SupportLanguage>,
 }
 
@@ -76,7 +65,7 @@ pub struct Problem {
     pub ast: Document,
 }
 
-/// 渲染文档，渲染器的输入
+/// 渲染文档，渲染器的输入。
 pub struct RenderDocument {
     pub config: RenConfig,
     pub problems: Vec<Problem>,

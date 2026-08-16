@@ -32,7 +32,7 @@ impl Visitor for HtmlVisitor<'_> {
                 line,
                 col,
                 info: format!(
-                    "检测到 Html 块，第一行为：{}",
+                    "检测到 HTML 块，第一行为：{}",
                     content.lines().nth(0).unwrap_or("")
                 ),
                 importance: CheckImportance::Warn,

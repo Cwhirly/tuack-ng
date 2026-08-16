@@ -6,7 +6,7 @@ use std::path::Path;
 #[cfg(unix)]
 use std::os::unix::fs::PermissionsExt;
 
-/// 将产物写入输出目录（文件流式落盘，空目录直接创建）
+/// 将产物写入输出目录（文件流式落盘，空目录直接创建）。
 pub async fn write_outputs(base: &Path, files: Vec<OutputFile>) -> Result<()> {
     for file in files {
         match file {
