@@ -1,9 +1,9 @@
 use crate::prelude::*;
 use html_builder::Html5;
 use html_builder::{Buffer, Node};
+use std::fmt::Write;
 use tuack_ng_parser::ast::inline::InlineKind;
 use tuack_ng_parser::ast::{Alignment, Table, TableCell};
-use std::fmt::Write;
 
 /// 将 Table 转换为 HTML 表格字符串
 pub fn table_to_html(table: &Table) -> Result<String> {

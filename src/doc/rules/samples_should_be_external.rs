@@ -5,12 +5,12 @@ use crate::{
         FormatRule,
     },
 };
+use regex::Regex;
+use std::sync::OnceLock;
 use tuack_ng_parser::ast::block::BlockKind;
 use tuack_ng_parser::ast::inline::InlineKind;
 use tuack_ng_parser::ast::{Block, Document, Inline};
-use tuack_ng_parser::span::{Spanned, Span};
-use regex::Regex;
-use std::sync::OnceLock;
+use tuack_ng_parser::span::{Span, Spanned};
 
 fn input_regex() -> &'static Regex {
     static RE: OnceLock<Regex> = OnceLock::new();
@@ -64,8 +64,13 @@ fn classify_block(block: &Block) -> SampleHeading {
         BlockKind::Heading(h) => classify_inlines(&h.content),
         BlockKind::Paragraph(inlines) => {
             let is_decorated = inlines.len() == 1
-                && matches!(&inlines[0].value, InlineKind::Strong(_) | InlineKind::Emphasis(_));
-            let is_plain = inlines.iter().all(|i| matches!(i.value, InlineKind::Text(_)));
+                && matches!(
+                    &inlines[0].value,
+                    InlineKind::Strong(_) | InlineKind::Emphasis(_)
+                );
+            let is_plain = inlines
+                .iter()
+                .all(|i| matches!(i.value, InlineKind::Text(_)));
             if is_decorated || is_plain {
                 classify_inlines(inlines)
             } else {
@@ -227,7 +232,12 @@ impl CheckRule for SamplesShouldBeExternal {
         unreachable!()
     }
 
-    fn check_ast(&self, doc: &Document, source: &str, problem_config: &ProblemConfig) -> Result<CheckResult> {
+    fn check_ast(
+        &self,
+        doc: &Document,
+        source: &str,
+        problem_config: &ProblemConfig,
+    ) -> Result<CheckResult> {
         let result = self.format(doc.to_owned(), problem_config)?;
 
         let mut messages: Vec<CheckInfo> = vec![];

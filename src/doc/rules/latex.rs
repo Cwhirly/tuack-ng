@@ -3,11 +3,11 @@ use crate::{
     tuack_lib::doc::rules::{CheckImportance, CheckInfo, CheckManifest, CheckResult, CheckRule},
 };
 use lazy_static::lazy_static;
+use regex::Regex;
+use tuack_ng_parser::ast::Document;
 use tuack_ng_parser::ast::block::BlockKind;
 use tuack_ng_parser::ast::inline::InlineKind;
-use tuack_ng_parser::ast::{Document};
 use tuack_ng_parser::visitor::{VisitWith, Visitor};
-use regex::Regex;
 
 lazy_static! {
     // 数学函数名

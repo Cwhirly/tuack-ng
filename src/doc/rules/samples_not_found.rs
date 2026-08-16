@@ -3,8 +3,8 @@ use crate::{
     tuack_lib::doc::rules::{CheckImportance, CheckInfo, CheckManifest, CheckResult, CheckRule},
 };
 use lazy_static::lazy_static;
-use tuack_ng_parser::ast::Document;
 use regex::Regex;
+use tuack_ng_parser::ast::Document;
 
 lazy_static! {
     static ref SAMPLE_REF_PATTERN: Regex =

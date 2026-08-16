@@ -23,3 +23,5 @@ pub use crate::tuack_lib::utils::compiler::{IoMode, ResourceLimits, RunResult, R
 
 pub use crate::config::DmkConfig;
 pub use crate::tuack_lib::utils::many::IndexMapMany;
+
+pub use async_trait::async_trait;

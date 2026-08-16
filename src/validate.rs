@@ -88,7 +88,8 @@ async fn validate_problem(
         Target::Data => problem_config.test_data(),
         Target::Sample => problem_config.sample_data(),
     };
-    let data_items = crate::utils::test_object::parse_test_object(object, &data_items, FsTestData::id)?;
+    let data_items =
+        crate::utils::test_object::parse_test_object(object, &data_items, FsTestData::id)?;
 
     let validator = match compile_validator(problem_config, target) {
         Ok(v) => v,

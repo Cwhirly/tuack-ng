@@ -1,27 +1,34 @@
 use crate::prelude::*;
-use crate::ren::RenderQueue;
-use crate::tuack_lib::ren::base::Checker;
-use crate::tuack_lib::ren::base::Compiler;
-use tuack_ng_parser::ast::Document;
-use tuack_ng_parser::printers::render_typst;
-use std::process::Command;
-
 use crate::ren::manifest::TemplateManifest;
+use crate::ren::renderers::{rewrite_images, unwrap_template};
+use crate::tuack_lib::ren::{OutputFile, ProblemType, RenderDocument, Renderer};
+use std::collections::HashSet;
+use tuack_ng_parser::printers::render_typst;
+
 mod datajson;
 use datajson::{DataJson, DateInfo, Problem, SupportLanguage};
 
-pub struct TypstChecker {
-    pub template_dir: PathBuf,
+/// Typst 渲染器
+pub struct TypstRenderer {
+    template_dir: PathBuf,
 }
 
-impl Checker for TypstChecker {
-    fn new(template_dir: PathBuf) -> Self {
-        TypstChecker { template_dir }
+impl TypstRenderer {
+    /// 解压模板到 `tmp_root` 并校验编译环境
+    pub fn new(tmp_root: PathBuf, manifest: &TemplateManifest) -> Result<Self> {
+        unwrap_template(manifest, &tmp_root)?;
+        Self::check_typst_env(&tmp_root)?;
+        Ok(Self {
+            template_dir: tmp_root,
+        })
     }
 
-    fn check_compiler(&self) -> Result<()> {
+    /// 校验 typst 命令可用且模板文件齐全
+    fn check_typst_env(template_dir: &Path) -> Result<()> {
         debug!("检查 Typst 编译环境");
-        let typst_check = Command::new("typst").arg("--version").output();
+        let typst_check = std::process::Command::new("typst")
+            .arg("--version")
+            .output();
 
         match typst_check {
             Ok(output) => {
@@ -39,211 +46,157 @@ impl Checker for TypstChecker {
 
         let template_required_files = ["main.typ", "utils.typ"];
         for file in template_required_files {
-            if !self.template_dir.join(file).exists() {
+            if !template_dir.join(file).exists() {
                 bail!("模板缺少必要文件：{}", file);
             }
             info!("文件存在：{}", file);
         }
         Ok(())
     }
-}
 
-pub struct TypstCompiler {
-    pub contest_config: ContestConfig,
-    pub day_config: ContestDayConfig,
-    pub tmp_dir: PathBuf,
-    pub renderqueue: Vec<RenderQueue>,
-    pub manifest: TemplateManifest,
-}
-
-impl Compiler for TypstCompiler {
-    fn new(
-        contest_config: ContestConfig,
-        day_config: ContestDayConfig,
-        tmp_dir: PathBuf,
-        renderqueue: Vec<RenderQueue>,
-        manifest: TemplateManifest,
-    ) -> Self {
-        TypstCompiler {
-            contest_config,
-            day_config,
-            tmp_dir,
-            renderqueue,
-            manifest,
-        }
-    }
-    fn compile(&self) -> Result<PathBuf> {
-        self.generate_conf(&self.day_config, &self.tmp_dir)?;
-        let mut render_idx: usize = 0;
-        for item in &self.renderqueue {
-            match item {
-                RenderQueue::Problem(ast, config) => {
-                    self.convert_ast(config, &self.tmp_dir, ast, render_idx)?;
-                    render_idx += 1;
-                }
-                RenderQueue::Precaution(ast) => {
-                    self.convert_ast_precaution(&self.tmp_dir, ast)?;
-                }
-            }
-        }
-        fs::create_dir(self.tmp_dir.join("output"))?;
-        let output_filename = format!("output/{}.pdf", self.day_config.name);
-        let output = Command::new("typst")
-            .arg("compile")
-            .arg("--font-path=fonts")
-            .arg("main.typ")
-            .arg(&output_filename)
-            .current_dir(&self.tmp_dir)
-            .output()?;
-        if output.status.success() {
-            info!("Typst 编译成功：{}", output_filename);
-            Ok(self.tmp_dir.join(output_filename))
-        } else {
-            let stderr = String::from_utf8_lossy(&output.stderr).to_string();
-            bail!(anyhow!(stderr).context("Typst 编译失败"));
-        }
-    }
-}
-impl TypstCompiler {
-    fn generate_conf(&self, day_config: &ContestDayConfig, tmp_dir: &Path) -> Result<()> {
-        // 构建问题列表
-        let mut problems = Vec::new();
-
-        for (_name, problem_config) in &day_config.subconfig {
-            let mut submit_filenames = Vec::new();
-
-            // 遍历 day_config.compile 中的语言配置来生成对应的提交文件名
-            for lang_key in day_config.compile.keys() {
-                submit_filenames.push(format!("{}.{}", problem_config.name, lang_key));
-            }
-
-            let point_equal = if problem_config.runtime.data.is_empty() {
-                // 如果没有测试数据，默认为"是"
-                "是".to_string()
-            } else {
-                // 获取第一个测试点的分数
-                let first_score = problem_config.runtime.data[0].score;
-                // 检查所有测试点的分数是否都等于第一个测试点的分数
-                let all_equal = problem_config
-                    .runtime
-                    .data
-                    .iter()
-                    .all(|data_item| data_item.score == first_score);
-
-                if all_equal {
-                    "是".to_string()
-                } else {
-                    "否".to_string()
-                }
-            };
-
-            let problem = Problem {
-                name: problem_config.name.clone(),
-                title: problem_config.title.clone(),
-                dir: problem_config.name.clone(), // 假设目录名就是问题名
-                exec: problem_config.name.clone(), // 默认值，你可能需要从配置文件读取
-                input: problem_config.name.clone() + ".in",
-                output: problem_config.name.clone() + ".out",
-                problem_type: match problem_config.problem_type {
+    fn generate_conf(&self, doc: &RenderDocument) -> DataJson {
+        let problems = doc
+            .problems
+            .iter()
+            .map(|p| {
+                let meta = &p.meta;
+                let problem_type = match meta.problem_type {
                     ProblemType::Program => "传统型",
                     ProblemType::Output => "提交答案型",
                     ProblemType::Interactive => "交互型",
+                };
+                Problem {
+                    name: meta.name.clone(),
+                    title: meta.title.clone(),
+                    dir: meta.name.clone(),
+                    exec: meta.name.clone(),
+                    input: format!("{}.in", meta.name),
+                    output: format!("{}.out", meta.name),
+                    problem_type: problem_type.to_string(),
+                    time_limit: format!("{:.1} 秒", meta.time_limit.as_secs_f64()),
+                    memory_limit: format!("{:.0}", meta.memory_limit),
+                    testcase: meta.testcase.to_string(),
+                    point_equal: if meta.point_equal { "是" } else { "否" }.to_string(),
+                    submit_filename: meta.submit_filename.clone(),
                 }
-                .to_string(),
-                time_limit: format!("{:.1} 秒", problem_config.time_limit),
-                memory_limit: format!("{:.0}", problem_config.memory_limit),
-                testcase: problem_config.runtime.data.len().to_string(),
-                point_equal,
-                submit_filename: submit_filenames,
-            };
-            problems.push(problem);
-        }
-
-        // 构建支持的语言列表
-        let context = crate::context::gctx();
-        let mut support_languages = Vec::new();
-
-        for (lang_key, compile_options) in &day_config.compile {
-            // 从 context 中查找对应的语言配置来获取语言名称
-            let language_name = if let Some(lang_config) = context.languages.get(lang_key) {
-                lang_config.language.clone()
-            } else {
-                // 如果 context 中没有对应的语言配置，使用键名作为语言名称
-                bail!("在语言配置中未找到 {}", lang_key);
-            };
-
-            let language = SupportLanguage {
-                name: language_name,
-                compile_options: compile_options.clone(),
-            };
-            support_languages.push(language);
-        }
-
-        // 创建日期信息
-        let date = if let Some(start_time) = day_config.start_time
-            && let Some(end_time) = day_config.end_time
-        {
-            Some(DateInfo {
-                start: start_time,
-                end: end_time,
             })
-        } else {
-            None
-        };
-
-        // 从 ContestConfig 和 ContestDayConfig 中获取覆盖值
-        let use_pretest = day_config
-            .use_pretest
-            .or(self.contest_config.use_pretest)
-            .unwrap_or(self.manifest.use_pretest);
-        let noi_style = day_config
-            .noi_style
-            .or(self.contest_config.noi_style)
-            .unwrap_or(self.manifest.noi_style);
-        let file_io = day_config
-            .file_io
-            .or(self.contest_config.file_io)
-            .unwrap_or(self.manifest.file_io);
-        let data_json = DataJson {
-            title: self.contest_config.title.clone(),
-            subtitle: self.contest_config.short_title.clone(),
-            dayname: day_config.title.clone(),
-            date,
-            use_pretest,
-            noi_style,
-            file_io,
+            .collect();
+        let support_languages = doc
+            .config
+            .support_languages
+            .iter()
+            .map(|l| SupportLanguage {
+                name: l.name.clone(),
+                compile_options: l.compile_options.clone(),
+            })
+            .collect();
+        DataJson {
+            title: doc.config.title.clone(),
+            subtitle: doc.config.short_title.clone(),
+            dayname: doc.config.dayname.clone(),
+            date: doc.config.date.map(|d| DateInfo {
+                start: d.start,
+                end: d.end,
+            }),
+            use_pretest: doc.config.use_pretest,
+            noi_style: doc.config.noi_style,
+            file_io: doc.config.file_io,
             support_languages,
             problems,
-        };
-
-        let data_json_str = serde_json::to_string_pretty(&data_json)?;
-        fs::write(tmp_dir.join("data.json"), data_json_str)?;
-        info!("生成 data.json");
-
-        Ok(())
+        }
     }
-    pub fn convert_ast(
+
+    /// 将各题图片流写入模板目录 img/ 下，供 typst 按相对路径引用（按目标路径去重）
+    async fn write_images(
         &self,
-        problem: &ProblemConfig,
-        tmp_dir: &Path,
-        ast: &Document,
-        index: usize,
+        doc: &RenderDocument,
+        images: &[(u64, String, String)],
     ) -> Result<()> {
-        info!("生成 Typst: {}", problem.name);
-        let typst_output = render_typst(ast);
-        let typst_output = format!("#import \"utils.typ\": *\n{}", typst_output);
-
-        let typst_filename = format!("problem-{}.typ", index);
-        fs::write(tmp_dir.join(&typst_filename), typst_output)?;
-        info!("生成：{}", typst_filename);
+        let img_dir = self.template_dir.join("img");
+        let mut seen = HashSet::new();
+        for (idx, url, target) in images {
+            if !seen.insert(target.clone()) {
+                continue;
+            }
+            let rel = target
+                .strip_prefix("img/")
+                .context(format!("图片路径不合法：{}", target))?;
+            let dest = img_dir.join(rel);
+            if let Some(parent) = dest.parent() {
+                fs::create_dir_all(parent)?;
+            }
+            let mut stream = doc.assets.load(*idx, url).await?;
+            let mut file = tokio::fs::File::create(&dest).await?;
+            tokio::io::copy(&mut stream, &mut file).await?;
+            drop(file);
+        }
         Ok(())
     }
-    pub fn convert_ast_precaution(&self, tmp_dir: &Path, ast: &Document) -> Result<()> {
-        info!("生成注意事项 Typst...");
-        let typst_output = render_typst(ast);
-        let typst_output = format!("#import \"utils.typ\": *\n{}", typst_output);
-        fs::write(tmp_dir.join("precaution.typ"), typst_output)?;
-        info!("生成：precaution.typ");
-        Ok(())
+}
+
+#[async_trait]
+impl Renderer for TypstRenderer {
+    async fn render(&self, doc: &RenderDocument) -> Result<(PathBuf, Vec<OutputFile>)> {
+        let day_key = doc.config.day_key.clone();
+
+        let mut images = Vec::new();
+        for problem in &doc.problems {
+            let (ast, map) = rewrite_images(problem.ast.clone(), problem.idx)?;
+
+            let typst_output = format!("#import \"utils.typ\": *\n{}", render_typst(&ast));
+            tokio::fs::write(
+                self.template_dir
+                    .join(format!("problem-{}.typ", problem.idx)),
+                typst_output,
+            )
+            .await?;
+
+            for (url, target) in &map {
+                images.push((problem.idx, url.clone(), target.clone()));
+            }
+        }
+
+        if let Some(precaution) = &doc.precaution {
+            let typst_output = format!("#import \"utils.typ\": *\n{}", render_typst(precaution));
+            tokio::fs::write(self.template_dir.join("precaution.typ"), typst_output).await?;
+        }
+
+        let data_json = self.generate_conf(doc);
+        let data_json_str = serde_json::to_string_pretty(&data_json)?;
+        tokio::fs::write(self.template_dir.join("data.json"), data_json_str).await?;
+
+        self.write_images(doc, &images).await?;
+
+        fs::create_dir(self.template_dir.join("output"))?;
+
+        let template_dir = self.template_dir.clone();
+        let output_filename = format!("output/{}.pdf", day_key);
+        let filename = output_filename.clone();
+        let typst_output = tokio::task::spawn_blocking(move || {
+            std::process::Command::new("typst")
+                .arg("compile")
+                .arg("--font-path=fonts")
+                .arg("main.typ")
+                .arg(filename)
+                .current_dir(&template_dir)
+                .output()
+        })
+        .await?
+        .context("typst 命令执行失败")?;
+
+        if !typst_output.status.success() {
+            let stderr = String::from_utf8_lossy(&typst_output.stderr).to_string();
+            bail!(anyhow!(stderr).context("Typst 编译失败"));
+        }
+
+        let pdf_path = self.template_dir.join(output_filename);
+        let bytes = tokio::fs::File::open(&pdf_path).await?;
+        Ok((
+            PathBuf::from(format!("{}.pdf", day_key)),
+            vec![OutputFile {
+                path: PathBuf::from(format!("{}.pdf", day_key)),
+                bytes: Box::new(bytes),
+            }],
+        ))
     }
 }

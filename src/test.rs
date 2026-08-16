@@ -500,12 +500,13 @@ pub async fn test_problem(
 
             // UKE 错误信息在结果行后打印
             if matches!(display_status, DisplayStatus::UKE)
-                && let Some(m) = result.message.as_deref() {
-                    let t = m.trim();
-                    if !t.is_empty() {
-                        msg_error!("{}", t);
-                    }
+                && let Some(m) = result.message.as_deref()
+            {
+                let t = m.trim();
+                if !t.is_empty() {
+                    msg_error!("{}", t);
                 }
+            }
 
             case_test_pb.set_message(format!(
                 "运行测试点：{}/{} | #{} {}",

@@ -81,7 +81,7 @@ async fn tuack_ng(cli: Cli) -> Result<()> {
     info!("booting up");
 
     match cli.command {
-        Commands::Ren(args) => ren::main(args),
+        Commands::Ren(args) => ren::main(args).await,
         Commands::Gen(args) => generate::main(args),
         Commands::Test(args) => test::main(args).await,
         Commands::Conf(args) => conf::main(args),

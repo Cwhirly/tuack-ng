@@ -1,38 +1,30 @@
 use crate::prelude::*;
+pub mod assets;
 pub mod lua;
 pub mod manifest;
 pub mod processors;
 pub mod renderers;
 pub mod template;
 pub mod tools;
-pub mod unwrap;
-pub mod utils;
-use crate::ren::unwrap::unwrap_template;
-use crate::ren::processors::process_ast;
-use crate::tuack_lib::ren::base::Checker;
-use crate::tuack_lib::ren::base::Compiler;
-use crate::ren::renderers::markdown::MarkdownChecker;
-use crate::ren::renderers::markdown::MarkdownCompiler;
-use crate::ren::renderers::typst::{TypstChecker, TypstCompiler};
-use crate::ren::utils::{process_image_urls, process_images_with_unique_ids};
-use clap::Args;
-use indexmap::IndexMap;
-use manifest::TargetType;
-use manifest::TemplateManifest;
-use tuack_ng_parser::ast::Document;
-use tuack_ng_parser::parse;
-use opener::open;
-use owo_colors::OwoColorize;
-use std::time::Duration;
-
-use crate::ren::template::render_template;
-
-use crate::utils::filesystem::copy_dir_recursive;
-
-use indicatif::ProgressBar;
-
 use crate::context;
 use crate::context::{CurrentLocation, gctx};
+use crate::ren::assets::FsAssetProvider;
+use crate::ren::manifest::{TargetType, TemplateManifest};
+use crate::ren::processors::process_ast;
+use crate::ren::renderers::ImageCollector;
+use crate::ren::renderers::markdown::MarkdownRenderer;
+use crate::ren::renderers::typst::TypstRenderer;
+use crate::ren::template::render_template;
+use crate::tuack_lib::ren::{
+    DateInfo, OutputFile, Problem, ProblemMeta, ProblemType, RenConfig, RenderDocument, Renderer,
+    SupportLanguage,
+};
+use clap::Args;
+use indexmap::IndexMap;
+use indicatif::ProgressBar;
+use opener::open;
+use std::time::Duration;
+use tuack_ng_parser::parse;
 
 #[derive(Args, Debug)]
 #[command(version)]
@@ -50,41 +42,100 @@ pub struct RenArgs {
     pub no_auto_open: bool,
 }
 
-pub enum RenderQueue {
-    Problem(Document, Box<ProblemConfig>),
-    Precaution(Document),
+/// 构造自洽渲染配置（day -> contest -> manifest 覆盖链合并）
+fn build_ren_config(
+    config: &ContestConfig,
+    day_config: &ContestDayConfig,
+    manifest: &TemplateManifest,
+) -> Result<RenConfig> {
+    let date = if let (Some(start), Some(end)) = (day_config.start_time, day_config.end_time) {
+        Some(DateInfo { start, end })
+    } else {
+        None
+    };
+
+    let use_pretest = day_config
+        .use_pretest
+        .or(config.use_pretest)
+        .unwrap_or(manifest.use_pretest);
+    let noi_style = day_config
+        .noi_style
+        .or(config.noi_style)
+        .unwrap_or(manifest.noi_style);
+    let file_io = day_config
+        .file_io
+        .or(config.file_io)
+        .unwrap_or(manifest.file_io);
+
+    let mut support_languages = Vec::new();
+    for (lang_key, compile_options) in &day_config.compile {
+        let language_name = gctx()
+            .languages
+            .get(lang_key)
+            .map(|lang| lang.language.clone())
+            .ok_or_else(|| anyhow!("在语言配置中未找到 {}", lang_key))?;
+        support_languages.push(SupportLanguage {
+            name: language_name,
+            compile_options: compile_options.clone(),
+        });
+    }
+
+    if day_config.name.is_empty() {
+        bail!("比赛日 name 不能为空");
+    }
+
+    Ok(RenConfig {
+        title: config.title.clone(),
+        short_title: config.short_title.clone(),
+        day_key: day_config.name.clone(),
+        dayname: day_config.title.clone(),
+        date,
+        use_pretest,
+        noi_style,
+        file_io,
+        support_languages,
+    })
 }
 
-fn ren(
+/// 从 ProblemConfig 提取题目渲染元信息
+fn build_problem_meta(problem: &ProblemConfig, day_config: &ContestDayConfig) -> ProblemMeta {
+    let submit_filenames = day_config
+        .compile
+        .keys()
+        .map(|lang_key| format!("{}.{}", problem.name, lang_key))
+        .collect();
+
+    let point_equal = if problem.runtime.data.is_empty() {
+        true
+    } else {
+        let first = problem.runtime.data[0].score;
+        problem.runtime.data.iter().all(|item| item.score == first)
+    };
+
+    ProblemMeta {
+        name: problem.name.clone(),
+        title: problem.title.clone(),
+        problem_type: match problem.problem_type {
+            crate::config::ProblemType::Program => ProblemType::Program,
+            crate::config::ProblemType::Output => ProblemType::Output,
+            crate::config::ProblemType::Interactive => ProblemType::Interactive,
+        },
+        time_limit: Duration::from_secs_f64(problem.time_limit),
+        memory_limit: problem.memory_limit,
+        testcase: problem.runtime.data.len(),
+        point_equal,
+        submit_filename: submit_filenames,
+    }
+}
+
+/// 构造一天的可渲染文档：读题面 -> 模板展开 -> 解析 -> 处理器 -> 图片扫描登记
+fn build_render_document(
     config: &ContestConfig,
     manifest: &TemplateManifest,
     day_config: &ContestDayConfig,
     problem: Option<String>,
-    statements_dir: &Path,
-    args: &RenArgs,
-    is_contest_level: bool,
-) -> Result<()> {
-    let tmp_dir = statements_dir.join("tmp");
-
-    // 清理已存在的临时目录
-    if tmp_dir.exists() {
-        info!("清理已存在的临时目录：{}", tmp_dir.display());
-        fs::remove_dir_all(&tmp_dir)?;
-    }
-    fs::create_dir(&tmp_dir)?;
-    info!("创建临时目录：{}", tmp_dir.display());
-
-    unwrap_template(manifest, &tmp_dir)?;
-
-    let checker: Box<dyn Checker> = match manifest.target {
-        TargetType::Typst => Box::new(TypstChecker::new(tmp_dir.clone())),
-        TargetType::Markdown => Box::new(MarkdownChecker::new(tmp_dir.clone())),
-    };
-    if let Err(e) = checker.check_compiler() {
-        bail!(e.context("渲染器检查未通过"));
-    }
-
-    // 获取要渲染的问题
+    problem_pb: &ProgressBar,
+) -> Result<RenderDocument> {
     let problems_to_render: IndexMap<String, &ProblemConfig> = match problem {
         Some(ref problem_key) => day_config
             .subconfig
@@ -104,20 +155,6 @@ fn ren(
         }
     };
 
-    // 添加问题级别进度条
-    let problem_pb = gctx()
-        .multiprogress
-        .add(ProgressBar::new(problems_to_render.len() as u64));
-
-    problem_pb.set_style(
-        indicatif::ProgressStyle::default_bar()
-            .template("  [{bar:40.cyan/blue}] {pos}/{len} {msg}")
-            .unwrap()
-            .progress_chars("=> "),
-    );
-
-    let mut renderqueue = Vec::<RenderQueue>::new();
-
     let day_to_render = if problem.is_some() {
         ContestDayConfig {
             subconfig: problems_to_render
@@ -132,23 +169,21 @@ fn ren(
     };
 
     let re = regex::Regex::new(r"<!--[\s\S]*?-->").unwrap();
+    let mut assets = FsAssetProvider::new();
+    let mut problems = Vec::new();
 
-    for (_problem_key, problem_config) in problems_to_render.iter() {
+    for (idx, (_problem_key, problem_config)) in problems_to_render.iter().enumerate() {
         problem_pb.set_message(format!("处理问题：{}", problem_config.name));
         info!("处理问题：{}", problem_config.name);
 
-        // 题面文件路径
         let problem_dir = &problem_config.path;
         let statement_path = problem_dir.join("statement.md");
-
         if !statement_path.exists() {
-            msg_error!("未找到题面文件：{}", statement_path.display());
-            problem_pb.finish_with_message("遇到错误，停止处理");
             bail!("未找到题面文件：{}", statement_path.display());
         }
 
         // 解析题面同时展开模板，移除注释
-        let content = match render_template(
+        let content = render_template(
             re.replace_all(&fs::read_to_string(&statement_path)?, "")
                 .as_ref(),
             problem_config,
@@ -156,136 +191,149 @@ fn ren(
             config,
             problem_config.path.clone(),
             manifest.clone(),
-        ) {
-            Ok(content) => content,
-            Err(e) => {
-                msg_error!(
-                    "读取题面文件/展开模板 {} 失败：{:?}",
-                    statement_path.display(),
-                    e
-                );
-                problem_pb.finish_with_message("遇到错误，停止处理");
-                bail!("解析题面文件失败");
-            }
-        };
+        )
+        .with_context(|| format!("读取题面文件/展开模板失败：{}", statement_path.display()))?;
 
         let mut ast = parse(&content);
-
         ast = process_ast(&mut ast, &manifest.processor)?;
 
-        let img_src_dir = problem_dir.join("img");
+        assets.register(idx as u64, problem_config.path.clone());
 
-        process_image_urls(&img_src_dir, &mut ast);
-
-        renderqueue.push(RenderQueue::Problem(
+        problems.push(Problem {
+            idx: idx as u64,
+            meta: build_problem_meta(problem_config, day_config),
             ast,
-            Box::new((*problem_config).clone()),
-        ));
-
-        if img_src_dir.exists() && img_src_dir.is_dir() {
-            let img_dst_dir = tmp_dir.join("img");
-            if !img_dst_dir.exists() {
-                fs::create_dir_all(&img_dst_dir)?;
-            }
-
-            process_images_with_unique_ids(&img_src_dir, &img_dst_dir)?;
-            info!(
-                "处理图片资源：{} -> {}",
-                img_src_dir.display(),
-                img_dst_dir.display()
-            );
-        }
+        });
 
         problem_pb.inc(1);
     }
 
     // 处理注意事项文件
     let precaution_path = config.path.join("precaution.md");
-    info!("{}", precaution_path.to_string_lossy());
-    if precaution_path.exists() {
-        info!("处理注意事项文件：{}", precaution_path.display());
-        let content = fs::read_to_string(&precaution_path)?;
-        let ast = parse(&content);
-        renderqueue.push(RenderQueue::Precaution(ast));
-    } else {
+    if !precaution_path.exists() {
         bail!("未找到注意事项文件：{}", precaution_path.display());
     }
+    let precaution_ast = parse(&fs::read_to_string(&precaution_path)?);
+    if !ImageCollector::collect(&precaution_ast).is_empty() {
+        bail!("注意事项不支持图片");
+    }
+    info!("处理注意事项文件：{}", precaution_path.display());
 
+    let config = build_ren_config(config, day_config, manifest)?;
+
+    Ok(RenderDocument {
+        config,
+        problems,
+        precaution: Some(precaution_ast),
+        assets: Box::new(assets),
+    })
+}
+
+/// 将产物流式写入输出目录
+async fn write_outputs(statements_dir: &Path, files: Vec<OutputFile>) -> Result<()> {
+    for file in files {
+        let target = statements_dir.join(&file.path);
+        if let Some(parent) = target.parent() {
+            fs::create_dir_all(parent)
+                .with_context(|| format!("创建目录失败：{}", parent.display()))?;
+        }
+        let mut bytes = file.bytes;
+        let mut out = tokio::fs::File::create(&target)
+            .await
+            .with_context(|| format!("创建文件失败：{}", target.display()))?;
+        tokio::io::copy(&mut bytes, &mut out)
+            .await
+            .with_context(|| format!("写入文件失败：{}", target.display()))?;
+        info!("生成：{}", target.display());
+    }
+    Ok(())
+}
+
+async fn ren(
+    config: &ContestConfig,
+    manifest: &TemplateManifest,
+    day_config: &ContestDayConfig,
+    problem: Option<String>,
+    statements_dir: &Path,
+    args: &RenArgs,
+) -> Result<()> {
+    let tmp = tempfile::Builder::new()
+        .prefix("tuack-ng-ren-")
+        .tempdir()
+        .context("创建临时目录失败")?;
+    let tmp_dir = tmp.path().to_path_buf();
+    info!("创建临时目录：{}", tmp_dir.display());
+
+    let problem_pb = gctx()
+        .multiprogress
+        .add(ProgressBar::new(if problem.is_some() {
+            1
+        } else {
+            day_config.subconfig.len() as u64
+        }));
+    problem_pb.set_style(
+        indicatif::ProgressStyle::default_bar()
+            .template("  [{bar:40.cyan/blue}] {pos}/{len} {msg}")
+            .unwrap()
+            .progress_chars("=> "),
+    );
+
+    let doc = match build_render_document(config, manifest, day_config, problem, &problem_pb) {
+        Ok(doc) => doc,
+        Err(e) => {
+            problem_pb.finish_with_message("遇到错误，停止处理");
+            return Err(e);
+        }
+    };
     problem_pb.finish_and_clear();
 
-    // 编译 PDF
-    info!("开始编译：{}", day_config.name);
+    info!("开始渲染：{}", day_config.name);
     let compile_pb = gctx().multiprogress.add(ProgressBar::new_spinner());
     compile_pb.enable_steady_tick(Duration::from_millis(100));
-    compile_pb.set_message(format!("编译：{}", day_config.name));
+    compile_pb.set_message(format!("渲染：{}", day_config.name));
 
-    let compiler: Box<dyn Compiler> = match manifest.target {
-        TargetType::Typst => Box::new(TypstCompiler::new(
-            config.clone(),
-            day_to_render,
-            tmp_dir.clone(),
-            renderqueue,
-            manifest.clone(),
-        )),
-        TargetType::Markdown => Box::new(MarkdownCompiler::new(
-            config.clone(),
-            day_to_render,
-            tmp_dir.clone(),
-            renderqueue,
-            manifest.clone(),
-        )),
+    let renderer: Box<dyn Renderer> = match manifest.target {
+        TargetType::Typst => Box::new(TypstRenderer::new(tmp_dir.clone(), manifest)?),
+        TargetType::Markdown => Box::new(MarkdownRenderer::new()),
     };
 
-    let compile_result = compiler.compile();
+    let render_result = renderer.render(&doc).await;
 
     compile_pb.finish_and_clear();
 
-    if is_contest_level {
-        problem_pb.finish_and_clear();
-    } else {
-        problem_pb.finish_with_message("渲染完成！");
+    let (target, files) = match render_result {
+        Ok(result) => result,
+        Err(e) => {
+            msg_error!("渲染失败:\n{:?}", e);
+            let kept = tmp.keep();
+            msg_info!("保留临时目录以供调试：{}", kept.display());
+            bail!("渲染过程出错");
+        }
+    };
+
+    if let Err(e) = write_outputs(statements_dir, files).await {
+        msg_error!("写入渲染结果失败：{:?}", e);
+        let kept = tmp.keep();
+        msg_info!("保留临时目录以供调试：{}", kept.display());
+        bail!("写入渲染结果失败");
+    }
+    msg_info!("结果已保存到：{}", statements_dir.display());
+
+    if !args.no_auto_open {
+        let _ = open(statements_dir.join(target));
     }
 
-    match compile_result {
-        Ok(output_filename) => {
-            info!("编译成功！");
-
-            let source = tmp_dir.join(&output_filename);
-            let target = if output_filename.is_file() {
-                statements_dir.join(output_filename.file_name().unwrap())
-            } else {
-                statements_dir.to_path_buf()
-            };
-            if output_filename.is_file() {
-                fs::copy(&source, &target)?;
-            } else {
-                copy_dir_recursive(&source, &target)?;
-            }
-            msg_info!("结果已保存到：{}", target.display());
-
-            if !args.no_auto_open {
-                let _ = open(target);
-            }
-
-            if args.keep_tmp {
-                msg_info!("保留临时目录：{}", tmp_dir.display());
-            } else {
-                fs::remove_dir_all(&tmp_dir)?;
-                info!("清理临时目录");
-            }
-        }
-        Err(e) => {
-            msg_error!("编译失败:\n{:?}", e);
-
-            msg_info!("保留临时目录以供调试：{}", tmp_dir.display());
-            bail!("编译过程出错");
-        }
+    if args.keep_tmp {
+        let kept = tmp.keep();
+        msg_info!("保留临时目录：{}", kept.display());
+    } else {
+        info!("清理临时目录");
     }
 
     Ok(())
 }
 
-pub fn main(args: RenArgs) -> Result<()> {
+pub async fn main(args: RenArgs) -> Result<()> {
     debug!(
         "当前目录：{}",
         dunce::canonicalize(Path::new("."))?.to_string_lossy()
@@ -356,20 +404,21 @@ pub fn main(args: RenArgs) -> Result<()> {
                     .unwrap()
                     .progress_chars("=> "),
             );
-            for (day_count, (_day_name, day_config)) in config.subconfig.iter().enumerate() {
+            let mut failed_days = Vec::new();
+            for (day_count, (day_name, day_config)) in config.subconfig.iter().enumerate() {
                 day_pb.set_message(format!("处理第 {}/{} 天", day_count, total_days));
-                ren(
-                    config,
-                    &manifest,
-                    day_config,
-                    None,
-                    &statements_dir,
-                    &args,
-                    true,
-                )?;
+                if let Err(e) =
+                    ren(config, &manifest, day_config, None, &statements_dir, &args).await
+                {
+                    msg_error!("第 {} 天渲染失败：{:?}", day_name, e);
+                    failed_days.push(day_name.clone());
+                }
                 day_pb.inc(1);
             }
             day_pb.finish_with_message("渲染完成！");
+            if !failed_days.is_empty() {
+                bail!("以下天渲染失败：{}", failed_days.join(", "));
+            }
         }
         CurrentLocation::Day(day) => {
             ren(
@@ -379,8 +428,8 @@ pub fn main(args: RenArgs) -> Result<()> {
                 None,
                 &statements_dir,
                 &args,
-                false,
-            )?;
+            )
+            .await?;
         }
         CurrentLocation::Problem(day, problem) => {
             ren(
@@ -390,8 +439,8 @@ pub fn main(args: RenArgs) -> Result<()> {
                 Some(problem.to_string()),
                 &statements_dir,
                 &args,
-                false,
-            )?;
+            )
+            .await?;
         }
         CurrentLocation::None => bail!("没有有效的配置文件"),
     }

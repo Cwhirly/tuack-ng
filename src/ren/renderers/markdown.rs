@@ -1,63 +1,43 @@
 use crate::prelude::*;
-use crate::utils::filesystem::copy_dir_recursive;
-use crate::ren::manifest::TemplateManifest;
-use crate::ren::RenderQueue;
-use crate::tuack_lib::ren::base::Checker;
-use crate::tuack_lib::ren::base::Compiler;
+use crate::ren::renderers::rewrite_images;
+use crate::tuack_lib::ren::{OutputFile, RenderDocument, Renderer};
+use std::collections::HashSet;
 use tuack_ng_parser::printers::render_markdown;
 
-pub struct MarkdownChecker {}
+/// Markdown 渲染器
+pub struct MarkdownRenderer;
 
-impl Checker for MarkdownChecker {
-    fn new(_: PathBuf) -> Self {
-        MarkdownChecker {}
-    }
-
-    fn check_compiler(&self) -> Result<()> {
-        Ok(())
+impl MarkdownRenderer {
+    pub fn new() -> Self {
+        Self
     }
 }
 
-pub struct MarkdownCompiler {
-    pub day_config: ContestDayConfig,
-    pub tmp_dir: PathBuf,
-    pub renderqueue: Vec<RenderQueue>,
-}
+#[async_trait]
+impl Renderer for MarkdownRenderer {
+    async fn render(&self, doc: &RenderDocument) -> Result<(PathBuf, Vec<OutputFile>)> {
+        let mut files = Vec::new();
+        for problem in &doc.problems {
+            let (ast, images) = rewrite_images(problem.ast.clone(), problem.idx)?;
 
-impl Compiler for MarkdownCompiler {
-    fn new(
-        _: ContestConfig,
-        day_config: ContestDayConfig,
-        tmp_dir: PathBuf,
-        renderqueue: Vec<RenderQueue>,
-        _manifest: TemplateManifest,
-    ) -> Self {
-        MarkdownCompiler {
-            day_config,
-            tmp_dir,
-            renderqueue,
-        }
-    }
+            let output = render_markdown(&ast);
+            files.push(OutputFile {
+                path: PathBuf::from(format!("{}/{}.md", doc.config.day_key, problem.meta.name)),
+                bytes: Box::new(std::io::Cursor::new(output.into_bytes())),
+            });
 
-    fn compile(&self) -> Result<PathBuf> {
-        let output_dir = &self.tmp_dir.join("output").join(&self.day_config.name);
-        if !output_dir.exists() {
-            fs::create_dir_all(output_dir)?;
-        }
-        for item in &self.renderqueue {
-            if let RenderQueue::Problem(ast, problem_config) = item {
-                let output = render_markdown(ast);
-                let output_filename = format!("{}.md", problem_config.name);
-
-                fs::write(output_dir.join(&output_filename), output)?;
-                info!("生成 Markdown 文件：{}", output_filename);
+            let mut seen = HashSet::new();
+            for (url, target) in &images {
+                if !seen.insert(target.clone()) {
+                    continue;
+                }
+                let stream = doc.assets.load(problem.idx, url).await?;
+                files.push(OutputFile {
+                    path: PathBuf::from(format!("{}/{}", doc.config.day_key, target)),
+                    bytes: stream,
+                });
             }
         }
-        if self.tmp_dir.join("img").exists() {
-            let target = output_dir.join("img");
-            copy_dir_recursive(self.tmp_dir.join("img"), &target)?;
-            info!("复制图片目录到：{}", target.display());
-        }
-        Ok(output_dir.parent().unwrap().to_path_buf())
+        Ok((PathBuf::from(&doc.config.day_key), files))
     }
 }

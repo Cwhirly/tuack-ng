@@ -12,9 +12,9 @@ pub fn loj_unspan(table: &Table) -> Result<Table> {
             if col.value.rowspan.is_none() && col.value.colspan.is_none() {
                 // 这是个正常单元格
                 let mut new_item = col.value.content.clone();
-                new_item.push(tuack_ng_parser::span::Spanned::plain(
-                    InlineKind::Html(format!("<!--row:{},col: {}-->", row_id, col_id)),
-                ));
+                new_item.push(tuack_ng_parser::span::Spanned::plain(InlineKind::Html(
+                    format!("<!--row:{},col: {}-->", row_id, col_id),
+                )));
                 *new_table
                     .rows
                     .get_mut(row_id)
@@ -24,9 +24,9 @@ pub fn loj_unspan(table: &Table) -> Result<Table> {
             } else {
                 // 这是个合并单元格
                 let mut new_item = col.value.content.clone();
-                new_item.push(tuack_ng_parser::span::Spanned::plain(
-                    InlineKind::Html(format!("<!--row:{},col: {}-->", row_id, col_id)),
-                ));
+                new_item.push(tuack_ng_parser::span::Spanned::plain(InlineKind::Html(
+                    format!("<!--row:{},col: {}-->", row_id, col_id),
+                )));
                 let rowcnt = col.value.rowspan.unwrap_or(1);
                 let colcnt = col.value.colspan.unwrap_or(1);
                 for expand_row_id in row_id..(row_id + rowcnt) {

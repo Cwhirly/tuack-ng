@@ -6,8 +6,8 @@ use crate::{
     },
 };
 use lazy_static::lazy_static;
-use tuack_ng_parser::ast::Document;
 use regex::Regex;
+use tuack_ng_parser::ast::Document;
 
 lazy_static! {
     static ref SAMPLE_TEXT_PATTERN: Regex =
@@ -160,11 +160,7 @@ impl CheckRule for SamplesTooLarge {
                 if let Ok((exceed, violation)) = check_file_limits(&path)
                     && exceed
                 {
-                    violations.push(format!(
-                        "输出文件 {} ({})",
-                        output_path,
-                        violation.unwrap()
-                    ));
+                    violations.push(format!("输出文件 {} ({})", output_path, violation.unwrap()));
                 }
 
                 if !violations.is_empty() {
