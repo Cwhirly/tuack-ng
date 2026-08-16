@@ -1,7 +1,8 @@
 use crate::prelude::*;
 use crate::ren::manifest::TemplateManifest;
 use crate::ren::renderers::{rewrite_images, unwrap_template};
-use crate::tuack_lib::ren::{OutputFile, ProblemType, RenderDocument, Renderer};
+use crate::tuack_lib::ren::{ProblemType, RenderDocument, Renderer};
+use crate::tuack_lib::utils::output::OutputFile;
 use std::collections::HashSet;
 use tuack_ng_parser::printers::render_typst;
 
@@ -110,7 +111,7 @@ impl TypstRenderer {
     async fn write_images(
         &self,
         doc: &RenderDocument,
-        images: &[(u64, String, String)],
+        images: &[(u64, PathBuf, PathBuf)],
     ) -> Result<()> {
         let img_dir = self.template_dir.join("img");
         let mut seen = HashSet::new();
@@ -120,7 +121,7 @@ impl TypstRenderer {
             }
             let rel = target
                 .strip_prefix("img/")
-                .context(format!("图片路径不合法：{}", target))?;
+                .context(format!("图片路径不合法：{}", target.display()))?;
             let dest = img_dir.join(rel);
             if let Some(parent) = dest.parent() {
                 fs::create_dir_all(parent)?;
@@ -193,7 +194,7 @@ impl Renderer for TypstRenderer {
         let bytes = tokio::fs::File::open(&pdf_path).await?;
         Ok((
             PathBuf::from(format!("{}.pdf", day_key)),
-            vec![OutputFile {
+            vec![OutputFile::File {
                 path: PathBuf::from(format!("{}.pdf", day_key)),
                 bytes: Box::new(bytes),
             }],

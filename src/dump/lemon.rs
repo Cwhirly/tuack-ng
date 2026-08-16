@@ -2,6 +2,9 @@ use serde_json::{Map, Value, json};
 use std::process::Command;
 
 use crate::prelude::*;
+use crate::tuack_lib::dump::{Dumper, ScorePolicy};
+use crate::tuack_lib::ren::ProblemType;
+use crate::tuack_lib::utils::output::OutputFile;
 
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -48,152 +51,156 @@ fn case_rel_path(prob_name: &str, case_id: u32, ext: &str) -> String {
     format!("{prob_name}/{prob_name}{case_id}.{ext}")
 }
 
-fn copy_case_file(
-    prob: &ProblemConfig,
-    output_dir: &Path,
-    src: &str,
-    prob_name: &str,
-    case_id: u32,
-    ext: &str,
-) -> Result<()> {
-    fs::copy(
-        prob.path.join("data").join(src),
-        output_dir
-            .join("data")
-            .join(prob_name)
-            .join(format!("{prob_name}{case_id}.{ext}")),
-    )?;
-    Ok(())
+pub struct LemonDumper {
+    tmp_dir: PathBuf,
 }
 
-pub fn main(day: &ContestDayConfig) -> Result<()> {
-    let output_dir = day.path.join("dump/lemon");
-
-    if output_dir.exists() {
-        fs::remove_dir_all(&output_dir)?;
+impl LemonDumper {
+    pub fn new(tmp_dir: PathBuf) -> Self {
+        Self { tmp_dir }
     }
-    fs::create_dir(&output_dir)?;
-    fs::create_dir(output_dir.join("data"))?;
+}
 
-    let mut prob_jsons: Vec<Value> = Vec::new();
+#[async_trait]
+impl Dumper for LemonDumper {
+    async fn dump(&self, doc: &crate::tuack_lib::dump::DumpDocument) -> Result<Vec<OutputFile>> {
+        let mut files = Vec::new();
+        let mut prob_jsons: Vec<Value> = Vec::new();
 
-    for (_, prob) in &day.subconfig {
-        fs::create_dir(output_dir.join("data").join(&prob.name))?;
-
-        for case in &prob.runtime.data {
-            copy_case_file(prob, &output_dir, &case.input, &prob.name, case.id, "in")?;
-            copy_case_file(prob, &output_dir, &case.output, &prob.name, case.id, "ans")?;
-        }
-
-        let mut cases: Vec<LemonCase> = Vec::new();
-        let time_limit = (prob.time_limit * 1000.0) as u32;
-        let memory_limit = prob.memory_limit.as_mib() as u32;
-
-        for task in prob.runtime.subtasks.values() {
-            let mut input_files: Vec<String> = Vec::new();
-            let mut output_files: Vec<String> = Vec::new();
-
-            for &idx in &task.items {
-                let case = &prob.runtime.data[idx];
-                input_files.push(case_rel_path(&prob.name, case.id, "in"));
-                output_files.push(case_rel_path(&prob.name, case.id, "ans"));
+        for prob in &doc.problems {
+            for case in &prob.data {
+                files.push(OutputFile::File {
+                    path: PathBuf::from(format!(
+                        "lemon/data/{}/{}{}.in",
+                        prob.name, prob.name, case.id
+                    )),
+                    bytes: doc.assets.load(prob.idx, &case.input).await?,
+                });
+                files.push(OutputFile::File {
+                    path: PathBuf::from(format!(
+                        "lemon/data/{}/{}{}.ans",
+                        prob.name, prob.name, case.id
+                    )),
+                    bytes: doc.assets.load(prob.idx, &case.output).await?,
+                });
             }
 
-            match task.policy {
-                ScorePolicy::Sum => {
-                    for (i, &idx) in task.items.iter().enumerate() {
-                        let case = &prob.runtime.data[idx];
+            let mut cases: Vec<LemonCase> = Vec::new();
+            let time_limit = (prob.time_limit.as_secs_f64() * 1000.0) as u32;
+            let memory_limit = prob.memory_limit.as_mib() as u32;
+
+            for task in prob.subtasks.values() {
+                let input_files: Vec<String> = task
+                    .items
+                    .iter()
+                    .map(|&idx| case_rel_path(&prob.name, prob.data[idx].id, "in"))
+                    .collect();
+                let output_files: Vec<String> = task
+                    .items
+                    .iter()
+                    .map(|&idx| case_rel_path(&prob.name, prob.data[idx].id, "ans"))
+                    .collect();
+
+                match task.policy {
+                    ScorePolicy::Sum => {
+                        for (i, &idx) in task.items.iter().enumerate() {
+                            let case = &prob.data[idx];
+                            cases.push(LemonCase {
+                                full_score: case.score,
+                                time_limit,
+                                memory_limit,
+                                input_files: vec![input_files[i].clone()],
+                                output_files: vec![output_files[i].clone()],
+                            });
+                        }
+                    }
+                    ScorePolicy::Min => {
                         cases.push(LemonCase {
-                            full_score: case.score,
+                            full_score: task.max_score,
                             time_limit,
                             memory_limit,
-                            input_files: vec![input_files[i].clone()],
-                            output_files: vec![output_files[i].clone()],
+                            input_files,
+                            output_files,
                         });
                     }
+                    ScorePolicy::Max => bail!("lemon 不支持 max 评分方法"),
                 }
-                ScorePolicy::Min => {
-                    cases.push(LemonCase {
-                        full_score: task.max_score,
-                        time_limit,
-                        memory_limit,
-                        input_files,
-                        output_files,
-                    });
+            }
+
+            let chk_name = format!("chk{}", std::env::consts::EXE_SUFFIX);
+            if let Some(checker) = &prob.checker {
+                info!("尝试编译 SPJ");
+
+                // 源码经 assets 取流写 tmp，再 g++ 编译
+                let src_tmp = self.tmp_dir.join("chk-src.cpp");
+                let mut src = doc.assets.load(prob.idx, checker).await?;
+                let mut f = tokio::fs::File::create(&src_tmp).await?;
+                tokio::io::copy(&mut src, &mut f).await?;
+                drop(f);
+
+                let chk_out = self.tmp_dir.join(&chk_name);
+                let compile_status = Command::new("g++")
+                    .arg("-o")
+                    .arg(&chk_out)
+                    .arg(&src_tmp)
+                    .arg("-O2")
+                    .arg("-std=c++23")
+                    .status()?;
+
+                if !compile_status.success() {
+                    bail!("SPJ 编译错误");
                 }
-                ScorePolicy::Max => bail!("lemon 不支持 max 评分方法"),
+                files.push(OutputFile::File {
+                    path: PathBuf::from(format!("lemon/data/{}/{}", prob.name, chk_name)),
+                    bytes: Box::new(tokio::fs::File::open(&chk_out).await?),
+                });
             }
+
+            let mut compilers: Map<String, Value> = Map::new();
+            for (lang, _) in &doc.config.compile {
+                compilers.insert(
+                    compiler_for_lang(lang)?.to_string(),
+                    Value::String("default".to_string()),
+                );
+            }
+
+            let task_type = match prob.problem_type {
+                ProblemType::Program => 0,
+                ProblemType::Output => 1,
+                ProblemType::Interactive => bail!("lemon 不支持交互题"),
+            };
+
+            let prob_json = LemonProblem {
+                answer_file_extension: "out".to_string(),
+                comparison_mode: if prob.checker.is_some() { 4 } else { 1 },
+                special_judge: PathBuf::from(&prob.name).join(&chk_name),
+                diff_arguments: "--ignore-space-change --text --brief".to_string(),
+                input_file_name: format!("{}.in", prob.name),
+                output_file_name: format!("{}.out", prob.name),
+                problem_title: prob.title.clone(),
+                task_type,
+                compiler_configuration: compilers,
+                test_cases: cases,
+            };
+
+            prob_jsons.push(serde_json::to_value(&prob_json)?);
         }
 
-        if let Some(checker) = &prob.checker {
-            info!("尝试编译 SPJ");
+        let day_cdf = json!({
+            "contestTitle": doc.config.day_name,
+            "contestants": Value::Array(Vec::new()),
+            "tasks": prob_jsons
+        });
 
-            let chk_path = prob.path.join(&checker.data.source);
-            if !chk_path.exists() {
-                bail!("checker 文件不存在：{}", chk_path.display());
-            }
-            let chk_out = output_dir
-                .join("data")
-                .join(&prob.name)
-                .join("chk")
-                .with_extension(std::env::consts::EXE_EXTENSION);
-            let compile_status = Command::new("g++")
-                .arg("-o")
-                .arg(&chk_out)
-                .arg(&chk_path)
-                .arg("-O2")
-                .arg("-std=c++23")
-                .status()?;
+        let cdf_str = serde_json::to_string_pretty(&day_cdf)?;
+        files.push(OutputFile::File {
+            path: PathBuf::from(format!("lemon/{}.cdf", doc.config.day_name)),
+            bytes: Box::new(std::io::Cursor::new(cdf_str.into_bytes())),
+        });
 
-            if !compile_status.success() {
-                bail!("SPJ 编译错误");
-            }
-        }
+        msg_warn!("受 Lemon 限制，您需要手动调整编译选项。");
+        msg_warn!("目前设置是默认 (default)，如需要请自行修改。");
 
-        let mut compilers: Map<String, Value> = Map::new();
-        for lang in day.compile.keys() {
-            compilers.insert(
-                compiler_for_lang(lang)?.to_string(),
-                Value::String("default".to_string()),
-            );
-        }
-
-        let prob_name = &prob.name;
-        let task_type = match prob.problem_type {
-            ProblemType::Program => 0,
-            ProblemType::Output => 1,
-            ProblemType::Interactive => bail!("lemon 不支持交互题"),
-        };
-
-        let prob_json = LemonProblem {
-            answer_file_extension: "out".to_string(),
-            comparison_mode: if prob.checker.is_some() { 4 } else { 1 },
-            special_judge: PathBuf::from(prob_name)
-                .join("chk")
-                .with_extension(std::env::consts::EXE_EXTENSION),
-            diff_arguments: "--ignore-space-change --text --brief".to_string(),
-            input_file_name: format!("{prob_name}.in"),
-            output_file_name: format!("{prob_name}.out"),
-            problem_title: prob.title.clone(),
-            task_type,
-            compiler_configuration: compilers,
-            test_cases: cases,
-        };
-
-        prob_jsons.push(serde_json::to_value(&prob_json)?);
+        Ok(files)
     }
-
-    let day_cdf = json!({
-        "contestTitle": day.name,
-        "contestants": Value::Array(Vec::new()),
-        "tasks": prob_jsons
-    });
-
-    let cdf_file = output_dir.join(day.name.clone()).with_extension("cdf");
-    fs::write(cdf_file, serde_json::to_string_pretty(&day_cdf)?)?;
-
-    msg_warn!("受 Lemon 限制，您需要手动调整编译选项。");
-    msg_warn!("目前设置是默认 (default)，如需要请自行修改。");
-
-    Ok(())
 }

@@ -1,6 +1,7 @@
 use crate::prelude::*;
 use crate::ren::renderers::rewrite_images;
-use crate::tuack_lib::ren::{OutputFile, RenderDocument, Renderer};
+use crate::tuack_lib::ren::{RenderDocument, Renderer};
+use crate::tuack_lib::utils::output::OutputFile;
 use std::collections::HashSet;
 use tuack_ng_parser::printers::render_markdown;
 
@@ -21,7 +22,7 @@ impl Renderer for MarkdownRenderer {
             let (ast, images) = rewrite_images(problem.ast.clone(), problem.idx)?;
 
             let output = render_markdown(&ast);
-            files.push(OutputFile {
+            files.push(OutputFile::File {
                 path: PathBuf::from(format!("{}/{}.md", doc.config.day_key, problem.meta.name)),
                 bytes: Box::new(std::io::Cursor::new(output.into_bytes())),
             });
@@ -32,8 +33,8 @@ impl Renderer for MarkdownRenderer {
                     continue;
                 }
                 let stream = doc.assets.load(problem.idx, url).await?;
-                files.push(OutputFile {
-                    path: PathBuf::from(format!("{}/{}", doc.config.day_key, target)),
+                files.push(OutputFile::File {
+                    path: PathBuf::from(format!("{}/{}", doc.config.day_key, target.display())),
                     bytes: stream,
                 });
             }

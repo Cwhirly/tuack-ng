@@ -2,7 +2,7 @@ use bytesize::ByteSize;
 use std::time::Duration;
 use tuack_ng_parser::ast::Document;
 
-use crate::tuack_lib::ren::AssetProvider;
+use crate::tuack_lib::utils::asset::AssetProvider;
 
 /// 题目类型
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

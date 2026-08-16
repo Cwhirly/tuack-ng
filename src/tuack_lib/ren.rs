@@ -4,17 +4,14 @@
 //!
 //! - `RenderDocument` 是不可变输入，`Renderer::render` 产出 `Vec<OutputFile>`。
 //! - 渲染器允许的，可忽略不计的副作用：写自己的临时目录、调用外部命令（如 typst）。
-//! - 渲染器禁止：访问 `gctx()`、直接读取用户资源（除非经 `AssetProvider`）、写最终输出目录。
+//! - 渲染器禁止：访问 `gctx()`（获取资源可能除外）、直接读取用户资源（除非经 `AssetProvider`）、写最终输出目录。
 
-pub mod asset;
 pub mod document;
-pub mod output;
 
-pub use asset::AssetProvider;
+use crate::tuack_lib::utils::output::OutputFile;
 pub use document::{
     DateInfo, Problem, ProblemMeta, ProblemType, RenConfig, RenderDocument, SupportLanguage,
 };
-pub use output::OutputFile;
 
 use crate::prelude::*;
 

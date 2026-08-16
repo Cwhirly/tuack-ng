@@ -33,7 +33,8 @@ impl Visitor for ImageCollector {
 }
 
 /// 检查并重写文档中的图片 URL，返回 `(重写后的 AST, 原始 url -> 目标 URL 映射)`。
-pub fn rewrite_images(ast: Document, idx: u64) -> Result<(Document, IndexMap<String, String>)> {
+/// 映射以 `PathBuf` 承载，`AssetProvider::load` 直接消费。
+pub fn rewrite_images(ast: Document, idx: u64) -> Result<(Document, IndexMap<PathBuf, PathBuf>)> {
     use std::path::Component;
 
     let mut ast = ast;
@@ -55,7 +56,8 @@ pub fn rewrite_images(ast: Document, idx: u64) -> Result<(Document, IndexMap<Str
                 url.to_string()
             } else {
                 let target = format!("img/{}/{}", idx, rel);
-                map.entry(url.to_string()).or_insert_with(|| target.clone());
+                map.entry(PathBuf::from(url))
+                    .or_insert_with(|| PathBuf::from(&target));
                 target
             }
         } else {

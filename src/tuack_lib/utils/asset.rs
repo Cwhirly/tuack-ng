@@ -5,9 +5,9 @@ use crate::tuack_lib::data::AsyncReader;
 
 /// 资源提供方：按「题目编号 + 逻辑路径」惰性返回资源字节流。
 ///
-/// 由前端实现，renderer 借此获取图片等资源，不直接接触文件系统。
+/// 由前端实现，renderer/dumper 借此获取图片、数据等资源，不直接接触文件系统。
 #[async_trait]
 pub trait AssetProvider: Send + Sync {
     /// 获取第 `idx` 题的资源 `path`
-    async fn load(&self, idx: u64, path: &str) -> Result<Box<dyn AsyncReader>>;
+    async fn load(&self, idx: u64, path: &Path) -> Result<Box<dyn AsyncReader>>;
 }

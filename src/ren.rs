@@ -1,5 +1,4 @@
 use crate::prelude::*;
-pub mod assets;
 pub mod lua;
 pub mod manifest;
 pub mod processors;
@@ -8,7 +7,6 @@ pub mod template;
 pub mod tools;
 use crate::context;
 use crate::context::{CurrentLocation, gctx};
-use crate::ren::assets::FsAssetProvider;
 use crate::ren::manifest::{TargetType, TemplateManifest};
 use crate::ren::processors::process_ast;
 use crate::ren::renderers::ImageCollector;
@@ -16,9 +14,10 @@ use crate::ren::renderers::markdown::MarkdownRenderer;
 use crate::ren::renderers::typst::TypstRenderer;
 use crate::ren::template::render_template;
 use crate::tuack_lib::ren::{
-    DateInfo, OutputFile, Problem, ProblemMeta, ProblemType, RenConfig, RenderDocument, Renderer,
+    DateInfo, Problem, ProblemMeta, ProblemType, RenConfig, RenderDocument, Renderer,
     SupportLanguage,
 };
+use crate::utils::assets::FsAssetProvider;
 use clap::Args;
 use indexmap::IndexMap;
 use indicatif::ProgressBar;
@@ -229,26 +228,6 @@ fn build_render_document(
     })
 }
 
-/// 将产物流式写入输出目录
-async fn write_outputs(statements_dir: &Path, files: Vec<OutputFile>) -> Result<()> {
-    for file in files {
-        let target = statements_dir.join(&file.path);
-        if let Some(parent) = target.parent() {
-            fs::create_dir_all(parent)
-                .with_context(|| format!("创建目录失败：{}", parent.display()))?;
-        }
-        let mut bytes = file.bytes;
-        let mut out = tokio::fs::File::create(&target)
-            .await
-            .with_context(|| format!("创建文件失败：{}", target.display()))?;
-        tokio::io::copy(&mut bytes, &mut out)
-            .await
-            .with_context(|| format!("写入文件失败：{}", target.display()))?;
-        info!("生成：{}", target.display());
-    }
-    Ok(())
-}
-
 async fn ren(
     config: &ContestConfig,
     manifest: &TemplateManifest,
@@ -311,7 +290,7 @@ async fn ren(
         }
     };
 
-    if let Err(e) = write_outputs(statements_dir, files).await {
+    if let Err(e) = crate::utils::filesystem::write_outputs(statements_dir, files).await {
         msg_error!("写入渲染结果失败：{:?}", e);
         let kept = tmp.keep();
         msg_info!("保留临时目录以供调试：{}", kept.display());

@@ -1,9 +1,40 @@
 use crate::prelude::*;
+use crate::tuack_lib::utils::output::OutputFile;
 use std::fs;
 use std::path::Path;
 
 #[cfg(unix)]
 use std::os::unix::fs::PermissionsExt;
+
+/// 将产物写入输出目录（文件流式落盘，空目录直接创建）
+pub async fn write_outputs(base: &Path, files: Vec<OutputFile>) -> Result<()> {
+    for file in files {
+        match file {
+            OutputFile::Dir(path) => {
+                let target = base.join(&path);
+                fs::create_dir_all(&target)
+                    .with_context(|| format!("创建目录失败：{}", target.display()))?;
+                info!("创建目录：{}", target.display());
+            }
+            OutputFile::File { path, bytes } => {
+                let target = base.join(&path);
+                if let Some(parent) = target.parent() {
+                    fs::create_dir_all(parent)
+                        .with_context(|| format!("创建目录失败：{}", parent.display()))?;
+                }
+                let mut bytes = bytes;
+                let mut out = tokio::fs::File::create(&target)
+                    .await
+                    .with_context(|| format!("创建文件失败：{}", target.display()))?;
+                tokio::io::copy(&mut bytes, &mut out)
+                    .await
+                    .with_context(|| format!("写入文件失败：{}", target.display()))?;
+                info!("生成：{}", target.display());
+            }
+        }
+    }
+    Ok(())
+}
 
 pub fn copy_dir_recursive<P: AsRef<Path>, Q: AsRef<Path>>(src: P, dst: Q) -> Result<()> {
     let src = src.as_ref();
