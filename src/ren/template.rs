@@ -1,5 +1,5 @@
 use crate::prelude::*;
-use crate::ren::manifest::TemplateManifest;
+use tuack_utils::ren::manifest::TemplateManifest;
 use crate::ren::tools;
 use anyhow::Result;
 use minijinja::{Environment, Value, context};

@@ -1,17 +1,15 @@
 use crate::prelude::*;
-use crate::tuack_lib::dump::{
+use tuack_lib::dump::{
     DumpCase, DumpConfig, DumpDocument, DumpFile, DumpProblem, DumpSample, DumpSubtask, Dumper,
     ScorePolicy,
 };
-use crate::tuack_lib::ren::ProblemType;
-use crate::utils::assets::FsAssetProvider;
+use tuack_lib::ren::ProblemType;
+use tuack_utils::assets::FsAssetProvider;
+use tuack_utils::dump::{arbiter, lemon};
 use clap::Args;
 use clap::ValueEnum;
 use std::collections::HashSet;
 use std::time::Duration;
-
-mod arbiter;
-mod lemon;
 
 #[derive(Debug, Clone, Copy, ValueEnum)]
 pub enum Target {
@@ -106,9 +104,9 @@ fn build_dump_document(
                         items: st.items.clone(),
                         max_score: st.max_score,
                         policy: match st.policy {
-                            crate::config::ScorePolicy::Sum => ScorePolicy::Sum,
-                            crate::config::ScorePolicy::Min => ScorePolicy::Min,
-                            crate::config::ScorePolicy::Max => ScorePolicy::Max,
+                            tuack_config::ScorePolicy::Sum => ScorePolicy::Sum,
+                            tuack_config::ScorePolicy::Min => ScorePolicy::Min,
+                            tuack_config::ScorePolicy::Max => ScorePolicy::Max,
                         },
                     },
                 )
@@ -142,9 +140,9 @@ fn build_dump_document(
             name: prob.name.clone(),
             title: prob.title.clone(),
             problem_type: match prob.problem_type {
-                crate::config::ProblemType::Program => ProblemType::Program,
-                crate::config::ProblemType::Output => ProblemType::Output,
-                crate::config::ProblemType::Interactive => ProblemType::Interactive,
+                tuack_config::ProblemType::Program => ProblemType::Program,
+                tuack_config::ProblemType::Output => ProblemType::Output,
+                tuack_config::ProblemType::Interactive => ProblemType::Interactive,
             },
             time_limit: Duration::from_secs_f64(prob.time_limit),
             memory_limit: prob.memory_limit,
@@ -184,7 +182,10 @@ async fn dump_main(
 
     let dumper: Box<dyn Dumper> = match target {
         Target::Lemon => Box::new(lemon::LemonDumper::new(tmp.path().to_path_buf())),
-        Target::Arbiter => Box::new(arbiter::ArbiterDumper::new(tmp.path().to_path_buf())),
+        Target::Arbiter => Box::new(arbiter::ArbiterDumper::new(
+            tmp.path().to_path_buf(),
+            gctx().assets_dirs.clone(),
+        )),
     };
 
     let files = match dumper.dump(&doc).await {

@@ -1,5 +1,5 @@
 use crate::prelude::*;
-use crate::ren::manifest::TemplateManifest;
+use tuack_utils::ren::manifest::TemplateManifest;
 use crate::utils::filesystem::create_or_clear_dir;
 use clap::{Args, Subcommand};
 use owo_colors::OwoColorize;

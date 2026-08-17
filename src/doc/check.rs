@@ -1,4 +1,4 @@
-use crate::tuack_lib::doc::rules::*;
+use crate::doc::rules::traits::*;
 use crate::{doc::rules::*, prelude::*};
 use clap::Args;
 use tuack_ng_parser::parse;

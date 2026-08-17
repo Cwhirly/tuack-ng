@@ -2157,6 +2157,39 @@ dependencies = [
 ]
 
 [[package]]
+name = "tuack-config"
+version = "1.1.0-alpha.1"
+dependencies = [
+ "anstream",
+ "anyhow",
+ "bytesize",
+ "debug_tree",
+ "dunce",
+ "indexmap",
+ "log",
+ "owo-colors",
+ "path-clean",
+ "serde",
+ "serde_json",
+ "serde_many",
+ "tuack-lib",
+]
+
+[[package]]
+name = "tuack-lib"
+version = "1.1.0-alpha.1"
+dependencies = [
+ "anyhow",
+ "async-trait",
+ "bytesize",
+ "indexmap",
+ "serde",
+ "serde_many",
+ "tokio",
+ "tuack-ng-parser",
+]
+
+[[package]]
 name = "tuack-ng"
 version = "1.1.0-alpha.1"
 dependencies = [
@@ -2202,7 +2235,10 @@ dependencies = [
  "sysinfo",
  "tempfile",
  "tokio",
+ "tuack-config",
+ "tuack-lib",
  "tuack-ng-parser",
+ "tuack-utils",
  "vergen",
 ]
 
@@ -2214,6 +2250,29 @@ checksum = "a9f222e0bc5065e8fb85af4643bcf8f3699299e6d79a1b885b1456b8a31a0ba5"
 dependencies = [
  "rushdown",
  "unicode-width 0.1.14",
+]
+
+[[package]]
+name = "tuack-utils"
+version = "1.1.0-alpha.1"
+dependencies = [
+ "anyhow",
+ "async-trait",
+ "html-builder",
+ "indexmap",
+ "log",
+ "quick-xml",
+ "serde",
+ "serde_json",
+ "serde_many",
+ "shellwords",
+ "strfmt",
+ "sysinfo",
+ "tempfile",
+ "tokio",
+ "tuack-config",
+ "tuack-lib",
+ "tuack-ng-parser",
 ]
 
 [[package]]

@@ -1,15 +1,13 @@
 use crate::prelude::*;
 use log::LevelFilter;
-use log4rs::append::console::Target;
-use log4rs::{
-    Logger,
-    append::console::ConsoleAppender,
-    config::{Appender, Config, Root},
-    encode::pattern::PatternEncoder,
-};
+use log4rs::append::console::{ConsoleAppender, Target};
+use log4rs::config::{Appender, Config, Root};
+use log4rs::encode::pattern::PatternEncoder;
+use log4rs::Logger;
 
-use crate::config::msgs::LoadContext;
-use crate::{config::load_config, context};
+use tuack_config::load_config;
+use tuack_config::msgs::LoadContext;
+use crate::context;
 use chrono::Local;
 use indicatif::MultiProgress;
 use indicatif_log_bridge::LogWrapper;
@@ -195,6 +193,13 @@ fn init_context(multi: MultiProgress, migrating: bool, validating: bool) -> Resu
 }
 
 pub fn init(verbose: &bool, cli: &crate::Cli) -> Result<()> {
+    // 接入 utils 的消息输出（未接入时其内部回退到 log）
+    tuack_utils::msg::install(Box::new(|level, msg| match level {
+        tuack_utils::msg::Level::Debug => debug!("{}", msg),
+        tuack_utils::msg::Level::Info => msg_info!("{}", msg),
+        tuack_utils::msg::Level::Warn => msg_warn!("{}", msg),
+        tuack_utils::msg::Level::Error => msg_error!("{}", msg),
+    }))?;
     if !DEBUG {
         let verbose_value = *verbose;
         panic::set_hook(Box::new(move |panic_info| {

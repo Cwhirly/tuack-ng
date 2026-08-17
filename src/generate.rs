@@ -1,5 +1,5 @@
-use crate::config::SingleDataItem;
-use crate::config::msgs::LoadContext;
+use tuack_config::SingleDataItem;
+use tuack_config::msgs::LoadContext;
 use crate::prelude::*;
 use crate::utils::filesystem::copy_dir_recursive;
 use clap::Args;

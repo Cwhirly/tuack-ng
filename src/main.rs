@@ -11,9 +11,7 @@ use clap::{Parser, Subcommand};
 use clap_i18n_richformatter::clap_i18n;
 
 mod conf;
-mod config;
 mod context;
-mod data;
 mod develop;
 mod dmk;
 mod doc;
@@ -23,7 +21,6 @@ mod init;
 mod prelude;
 mod ren;
 mod test;
-mod tuack_lib;
 mod utils;
 mod validate;
 

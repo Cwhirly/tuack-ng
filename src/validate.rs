@@ -3,11 +3,11 @@ use indicatif::ProgressBar;
 use owo_colors::OwoColorize;
 use std::time::Duration;
 
-use crate::data::fs::FsTestData;
+use tuack_utils::data::FsTestData;
 use crate::prelude::*;
-use crate::tuack_lib::data::Data;
-use crate::tuack_lib::utils::testlib::{Validator, ValidatorResult};
-use crate::utils::validators::cpp::CppValidator;
+use tuack_lib::data::Data;
+use tuack_lib::utils::testlib::{Validator, ValidatorResult};
+use tuack_utils::validators::cpp::CppValidator;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, ValueEnum)]
 pub enum Target {
@@ -85,8 +85,8 @@ async fn validate_problem(
     in_problem: bool,
 ) -> Result<()> {
     let data_items: Vec<FsTestData<'_>> = match target {
-        Target::Data => problem_config.test_data(),
-        Target::Sample => problem_config.sample_data(),
+        Target::Data => tuack_utils::data::problem_test_data(problem_config),
+        Target::Sample => tuack_utils::data::problem_sample_data(problem_config),
     };
     let data_items =
         crate::utils::test_object::parse_test_object(object, &data_items, FsTestData::id)?;

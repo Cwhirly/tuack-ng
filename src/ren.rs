@@ -1,23 +1,21 @@
 use crate::prelude::*;
 pub mod lua;
-pub mod manifest;
 pub mod processors;
-pub mod renderers;
 pub mod template;
 pub mod tools;
 use crate::context;
-use crate::context::{CurrentLocation, gctx};
-use crate::ren::manifest::{TargetType, TemplateManifest};
+use crate::context::gctx;
+use tuack_utils::ren::manifest::{TargetType, TemplateManifest};
 use crate::ren::processors::process_ast;
-use crate::ren::renderers::ImageCollector;
-use crate::ren::renderers::markdown::MarkdownRenderer;
-use crate::ren::renderers::typst::TypstRenderer;
+use tuack_utils::ren::renderers::ImageCollector;
+use tuack_utils::ren::markdown::MarkdownRenderer;
+use tuack_utils::ren::typst::TypstRenderer;
 use crate::ren::template::render_template;
-use crate::tuack_lib::ren::{
+use tuack_lib::ren::{
     DateInfo, Problem, ProblemMeta, ProblemType, RenConfig, RenderDocument, Renderer,
     SupportLanguage,
 };
-use crate::utils::assets::FsAssetProvider;
+use tuack_utils::assets::FsAssetProvider;
 use clap::Args;
 use indexmap::IndexMap;
 use indicatif::ProgressBar;
@@ -115,9 +113,9 @@ fn build_problem_meta(problem: &ProblemConfig, day_config: &ContestDayConfig) ->
         name: problem.name.clone(),
         title: problem.title.clone(),
         problem_type: match problem.problem_type {
-            crate::config::ProblemType::Program => ProblemType::Program,
-            crate::config::ProblemType::Output => ProblemType::Output,
-            crate::config::ProblemType::Interactive => ProblemType::Interactive,
+            tuack_config::ProblemType::Program => ProblemType::Program,
+            tuack_config::ProblemType::Output => ProblemType::Output,
+            tuack_config::ProblemType::Interactive => ProblemType::Interactive,
         },
         time_limit: Duration::from_secs_f64(problem.time_limit),
         memory_limit: problem.memory_limit,
@@ -272,7 +270,11 @@ async fn ren(
     compile_pb.set_message(format!("渲染：{}", day_config.name));
 
     let renderer: Box<dyn Renderer> = match manifest.target {
-        TargetType::Typst => Box::new(TypstRenderer::new(tmp_dir.clone(), manifest)?),
+        TargetType::Typst => Box::new(TypstRenderer::new(
+            tmp_dir.clone(),
+            manifest,
+            &gctx().assets_dirs,
+        )?),
         TargetType::Markdown => Box::new(MarkdownRenderer::new()),
     };
 

@@ -9,14 +9,14 @@ use owo_colors::OwoColorize;
 
 pub mod policy;
 
-use crate::data::fs::FsTestData;
+use tuack_utils::data::FsTestData;
 use crate::prelude::*;
 use crate::test::policy::{DataPolicy, SamplePolicy, ScorePolicy as _};
-use crate::tuack_lib::test::{TaskParams, TestCaseStatus, TestSession};
-use crate::tuack_lib::utils::testlib::Checker;
-use crate::utils::checkers::{cpp::CppChecker, prebuilt::PrebuiltChecker};
-use crate::utils::compilers::cpp::CppRunner;
-use crate::utils::compilers::general::*;
+use tuack_lib::test::{TaskParams, TestCaseStatus, TestSession};
+use tuack_lib::utils::testlib::Checker;
+use tuack_utils::checkers::{cpp::CppChecker, prebuilt::PrebuiltChecker};
+use tuack_utils::compilers::cpp::CppRunner;
+use tuack_utils::compilers::general::*;
 use crate::utils::duration::format_duration;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, ValueEnum)]
@@ -182,8 +182,8 @@ pub async fn test_problem(
     in_problem: bool,
 ) -> Result<()> {
     let data_items: Vec<FsTestData<'_>> = match target {
-        Target::Data => problem_config.test_data(),
-        Target::Sample => problem_config.sample_data(),
+        Target::Data => tuack_utils::data::problem_test_data(problem_config),
+        Target::Sample => tuack_utils::data::problem_sample_data(problem_config),
     };
     let is_sample = matches!(target, Target::Sample);
 
@@ -323,6 +323,7 @@ pub async fn test_problem(
                 &path,
                 &day_config.compile,
                 problem_config.name.clone(),
+                &gctx().languages,
             )?),
         };
 

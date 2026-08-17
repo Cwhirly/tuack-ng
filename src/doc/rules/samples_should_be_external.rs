@@ -1,6 +1,6 @@
 use crate::{
     prelude::*,
-    tuack_lib::doc::rules::{
+    doc::rules::traits::{
         CheckImportance, CheckInfo, CheckManifest, CheckResult, CheckRule, FormatManifest,
         FormatRule,
     },

@@ -1,4 +1,4 @@
-use crate::config::{CONFIG_FILE_NAME, save_config};
+use tuack_config::{CONFIG_FILE_NAME, save_config};
 use crate::prelude::*;
 use chrono::Datelike;
 use chrono::Timelike;
@@ -25,7 +25,7 @@ fn add_minutes(time: [u32; 6], minutes: i64) -> Result<[u32; 6]> {
 
 use crate::{
     Subcommand,
-    context::{CurrentLocation, gctx},
+    context::gctx,
 };
 use clap::Args;
 

@@ -39,7 +39,7 @@ jobs:
 
       - name: Pack deb
         run: |
-          cargo deb
+          cargo deb -p tuack-ng
           mv target/debian/*.deb target/debian/tuack-ng-linux-${{ matrix.artifact_suffix }}.deb
 
       - name: Upload deb

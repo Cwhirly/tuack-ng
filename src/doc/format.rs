@@ -1,5 +1,6 @@
-use crate::tuack_lib::doc::rules::*;
-use crate::{config::CONFIG_FILE_NAME, doc::rules::*, prelude::*};
+use crate::doc::rules::traits::*;
+use tuack_config::CONFIG_FILE_NAME;
+use crate::{doc::rules::*, prelude::*};
 use clap::Args;
 use tuack_ng_parser::parse;
 

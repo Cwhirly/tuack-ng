@@ -8,14 +8,14 @@ use indicatif::ProgressBar;
 use owo_colors::OwoColorize;
 use rand::Rng;
 
-use crate::context::{CurrentLocation, gctx};
-use crate::data::fs::FsTestData;
+use crate::context::gctx;
+use tuack_utils::data::FsTestData;
 use crate::prelude::*;
-use crate::tuack_lib::dmk::{DmkParams, DmkSession};
-use crate::tuack_lib::utils::testlib::{Generator, Validator};
-use crate::utils::compilers::cpp::CppRunner;
-use crate::utils::compilers::general::GeneralRunner;
-use crate::utils::compilers::generator::CppGenerator;
+use tuack_lib::dmk::{DmkParams, DmkSession};
+use tuack_lib::utils::testlib::{Generator, Validator};
+use tuack_utils::compilers::cpp::CppRunner;
+use tuack_utils::compilers::general::GeneralRunner;
+use tuack_utils::compilers::generator::CppGenerator;
 use crate::utils::random::gen_rnd;
 use crate::utils::test_object::parse_test_object;
 use crate::validate::compile_validator;
@@ -247,6 +247,7 @@ fn build_std_runner(
             std_path,
             &day_config.compile,
             problem_config.name.clone(),
+            &gctx().languages,
         )?),
     };
 
@@ -302,8 +303,8 @@ pub async fn main(args: DmkArgs) -> Result<()> {
         };
 
     let selected: Vec<FsTestData> = match &args.target {
-        Target::Data => current_problem.test_data(),
-        Target::Sample => current_problem.sample_data(),
+        Target::Data => tuack_utils::data::problem_test_data(current_problem),
+        Target::Sample => tuack_utils::data::problem_sample_data(current_problem),
     };
     let selected = parse_test_object(&args.object, &selected, FsTestData::id)?;
 

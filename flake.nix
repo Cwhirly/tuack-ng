@@ -26,7 +26,7 @@
       system:
       let
         cargoToml = fromTOML (builtins.readFile ./Cargo.toml);
-        version = cargoToml.package.version;
+        version = cargoToml.workspace.package.version;
 
         pkgs = import nixpkgs {
           inherit system;
@@ -49,6 +49,7 @@
           inherit src;
           pname = "tuack-ng";
           inherit version;
+          cargoExtraArgs = "-p tuack-ng --locked --no-default-features --features=nix";
         };
 
         tuack-ng = craneLib.buildPackage {
@@ -56,7 +57,7 @@
           pname = "tuack-ng";
           inherit version;
 
-          cargoExtraArgs = "--locked --no-default-features --features=nix";
+          cargoExtraArgs = "-p tuack-ng --locked --no-default-features --features=nix";
 
           nativeBuildInputs = with pkgs; [
             gcc

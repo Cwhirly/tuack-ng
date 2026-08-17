@@ -1,5 +1,5 @@
 use crate::prelude::*;
-use crate::tuack_lib::utils::output::OutputFile;
+use tuack_lib::utils::output::OutputFile;
 use std::fs;
 use std::path::Path;
 

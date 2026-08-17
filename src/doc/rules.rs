@@ -1,3 +1,4 @@
+pub mod traits;
 pub mod autocorrect;
 pub mod html;
 pub mod invisible;
