@@ -77,12 +77,12 @@ nix = []
 [package.metadata.deb]
 assets = [
     "$auto",
-    ["../assets/**/*", "usr/share/tuack-ng/", "755"],
+    ["../../assets/**/*", "usr/share/tuack-ng/", "755"],
 ]
-maintainer-scripts = "../doc/debian/"
+maintainer-scripts = "../../doc/debian/"
 
 [package.metadata.aur]
 files = [
-    ["../assets/", "/usr/share/tuack-ng/", "755"],
+    ["../../assets/", "/usr/share/tuack-ng/", "755"],
 ]
 depends = ["gcc-libs", "glibc"]
