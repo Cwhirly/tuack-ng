@@ -188,8 +188,8 @@ async fn dump_main(
         )),
     };
 
-    let files = match dumper.dump(&doc).await {
-        Ok(files) => files,
+    let (files, warnings) = match dumper.dump(&doc).await {
+        Ok(result) => result,
         Err(e) => {
             msg_error!("导出失败:\n{:?}", e);
             let kept = tmp.keep();
@@ -197,6 +197,10 @@ async fn dump_main(
             bail!("导出过程出错");
         }
     };
+
+    for warning in &warnings {
+        msg_warn!("{}", warning);
+    }
 
     let dir_name = target.as_str();
     let out_dir = dump_dir.join(dir_name);

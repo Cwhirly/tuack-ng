@@ -6,16 +6,26 @@ use std::path::PathBuf;
 use std::process::Command;
 use vergen::{BuildBuilder, CargoBuilder, Emitter, RustcBuilder, SysinfoBuilder};
 
+/// workspace 根目录（crates/tuack-ng 的父目录的父目录），assets/vendor 都在根下
+fn workspace_root() -> PathBuf {
+    PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .parent()
+        .unwrap()
+        .parent()
+        .unwrap()
+        .to_path_buf()
+}
+
 #[allow(unused)]
 fn copy_testlib(source: PathBuf) -> io::Result<()> {
-    let checkers_dir = "assets/checkers";
-    let testlib_dest = format!("{}/testlib.h", checkers_dir);
+    let checkers_dir = workspace_root().join("assets/checkers");
+    let testlib_dest = checkers_dir.join("testlib.h");
 
-    println!("cargo:rerun-if-changed={}", checkers_dir);
+    println!("cargo:rerun-if-changed={}", checkers_dir.display());
     println!("cargo:rerun-if-changed={}", source.display());
 
     // 确保目标目录存在
-    fs::create_dir_all(checkers_dir)?;
+    fs::create_dir_all(&checkers_dir)?;
 
     // 检查源文件是否存在
     if !source.exists() {
@@ -26,7 +36,7 @@ fn copy_testlib(source: PathBuf) -> io::Result<()> {
     }
 
     // 检查是否需要拷贝（文件不存在或内容不同）
-    let should_copy = if Path::new(&testlib_dest).exists() {
+    let should_copy = if testlib_dest.exists() {
         // 比较文件内容
         let src_content = fs::read(&source)?;
         let dst_content = fs::read(&testlib_dest)?;
@@ -42,11 +52,11 @@ fn copy_testlib(source: PathBuf) -> io::Result<()> {
 }
 
 fn main() {
-    let checkers_dir = "assets/checkers";
-    println!("cargo:rerun-if-changed={}", checkers_dir);
+    let checkers_dir = workspace_root().join("assets/checkers");
+    println!("cargo:rerun-if-changed={}", checkers_dir.display());
     #[cfg(not(feature = "nix"))]
     {
-        copy_testlib("vendor/testlib/testlib.h".into()).unwrap();
+        copy_testlib(workspace_root().join("vendor/testlib/testlib.h")).unwrap();
     }
     #[cfg(feature = "nix")]
     {
@@ -54,7 +64,7 @@ fn main() {
         copy_testlib(testlib_path.into()).unwrap();
     }
     // 编译 C++ 文件
-    if let Ok(entries) = fs::read_dir(checkers_dir) {
+    if let Ok(entries) = fs::read_dir(&checkers_dir) {
         for entry in entries.flatten() {
             let path = entry.path();
             if path.is_file() && path.extension().is_some_and(|ext| ext == "cpp") {

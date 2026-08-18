@@ -17,4 +17,4 @@ serde_many.workspace = true
 tokio.workspace = true
 
 [dependencies.tuack-ng-parser]
-version = "1.0.0"
+workspace = true

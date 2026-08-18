@@ -2245,8 +2245,6 @@ dependencies = [
 [[package]]
 name = "tuack-ng-parser"
 version = "1.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a9f222e0bc5065e8fb85af4643bcf8f3699299e6d79a1b885b1456b8a31a0ba5"
 dependencies = [
  "rushdown",
  "unicode-width 0.1.14",

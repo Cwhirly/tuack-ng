@@ -1,6 +1,7 @@
 //! Dump 后端：导出抽象，与 ren 同构。
 //!
-//! - `DumpDocument` 是不可变输入（day 级纯数据），`Dumper::dump` 产出 `Vec<OutputFile>`。
+//! - `DumpDocument` 是不可变输入（day 级纯数据），`Dumper::dump` 产出 `(Vec<OutputFile>, Vec<String>)`——
+//!   导出产物文件与导出过程中的面向用户警告（如平台限制、编译失败提示），由调用方负责展示。
 //! - dumper 不访问配置对象；用户资源（data/sample/down/checker）一律经 `AssetProvider` 获取。
 //! - dumper 可进行为生成导出产物所必需的内部 I/O（写临时目录、编译 checker 等）
 
@@ -93,8 +94,8 @@ pub struct DumpDocument {
     pub assets: Box<dyn AssetProvider>,
 }
 
-/// 导出器：`DumpDocument -> 产物文件列表`。
+/// 导出器：`DumpDocument -> (产物文件列表, 导出警告)`。
 #[async_trait]
 pub trait Dumper: Send + Sync {
-    async fn dump(&self, doc: &DumpDocument) -> Result<Vec<OutputFile>>;
+    async fn dump(&self, doc: &DumpDocument) -> Result<(Vec<OutputFile>, Vec<String>)>;
 }

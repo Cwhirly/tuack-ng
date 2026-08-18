@@ -98,9 +98,14 @@ fn init_context(multi: MultiProgress, migrating: bool, validating: bool) -> Resu
     );
 
     let assets_dirs = vec![
-        // 开发资源目录
+        // 开发资源目录（workspace 根的 assets/）
         #[cfg(debug_assertions)]
-        PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("assets"),
+        PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+            .parent()
+            .unwrap()
+            .parent()
+            .unwrap()
+            .join("assets"),
         // 用户目录
         dirs::data_local_dir()
             .unwrap_or_else(|| home_dir.join(".local/share"))
@@ -193,13 +198,6 @@ fn init_context(multi: MultiProgress, migrating: bool, validating: bool) -> Resu
 }
 
 pub fn init(verbose: &bool, cli: &crate::Cli) -> Result<()> {
-    // 接入 utils 的消息输出（未接入时其内部回退到 log）
-    tuack_utils::msg::install(Box::new(|level, msg| match level {
-        tuack_utils::msg::Level::Debug => debug!("{}", msg),
-        tuack_utils::msg::Level::Info => msg_info!("{}", msg),
-        tuack_utils::msg::Level::Warn => msg_warn!("{}", msg),
-        tuack_utils::msg::Level::Error => msg_error!("{}", msg),
-    }))?;
     if !DEBUG {
         let verbose_value = *verbose;
         panic::set_hook(Box::new(move |panic_info| {

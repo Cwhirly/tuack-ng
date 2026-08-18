@@ -63,9 +63,13 @@ impl LemonDumper {
 
 #[async_trait]
 impl Dumper for LemonDumper {
-    async fn dump(&self, doc: &tuack_lib::dump::DumpDocument) -> Result<Vec<OutputFile>> {
+    async fn dump(
+        &self,
+        doc: &tuack_lib::dump::DumpDocument,
+    ) -> Result<(Vec<OutputFile>, Vec<String>)> {
         let mut files = Vec::new();
         let mut prob_jsons: Vec<Value> = Vec::new();
+        let mut warnings = Vec::new();
 
         for prob in &doc.problems {
             for case in &prob.data {
@@ -198,9 +202,9 @@ impl Dumper for LemonDumper {
             bytes: Box::new(std::io::Cursor::new(cdf_str.into_bytes())),
         });
 
-        msg_warn!("受 Lemon 限制，您需要手动调整编译选项。");
-        msg_warn!("目前设置是默认 (default)，如需要请自行修改。");
+        warnings.push("受 Lemon 限制，您需要手动调整编译选项。".to_string());
+        warnings.push("目前设置是默认 (default)，如需要请自行修改。".to_string());
 
-        Ok(files)
+        Ok((files, warnings))
     }
 }

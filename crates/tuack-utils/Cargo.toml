@@ -27,4 +27,4 @@ sysinfo = "0.37.2"
 tempfile = "3.27.0"
 
 [dependencies.tuack-ng-parser]
-version = "1.0.0"
+workspace = true

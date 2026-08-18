@@ -35,6 +35,7 @@ impl ArbiterDumper {
         &self,
         doc: &tuack_lib::dump::DumpDocument,
         prob: &tuack_lib::dump::DumpProblem,
+        warnings: &mut Vec<String>,
     ) -> Result<Option<Box<dyn tuack_lib::data::AsyncReader>>> {
         let filter_path = self.tmp_dir.join(format!("{}_e", prob.name));
 
@@ -57,7 +58,7 @@ impl ArbiterDumper {
                 .context("执行 g++ 失败")?;
 
             if !status.success() {
-                msg_warn!("chk 编译失败，请手动处理：{}", checker.display());
+                warnings.push(format!("chk 编译失败，请手动处理：{}", checker.display()));
                 return Ok(None);
             }
             return Ok(Some(Box::new(tokio::fs::File::open(&filter_path).await?)));
@@ -81,7 +82,7 @@ impl ArbiterDumper {
                     .status()
                     .context("执行 g++ 失败")?;
                 if !status.success() {
-                    msg_warn!("默认比较器编译失败：{}", src.display());
+                    warnings.push(format!("默认比较器编译失败：{}", src.display()));
                     return Ok(None);
                 }
                 Ok(Some(Box::new(tokio::fs::File::open(&filter_path).await?)))
@@ -98,13 +99,17 @@ impl ArbiterDumper {
 
 #[async_trait]
 impl Dumper for ArbiterDumper {
-    async fn dump(&self, doc: &tuack_lib::dump::DumpDocument) -> Result<Vec<OutputFile>> {
+    async fn dump(
+        &self,
+        doc: &tuack_lib::dump::DumpDocument,
+    ) -> Result<(Vec<OutputFile>, Vec<String>)> {
         if !cfg!(target_os = "linux") {
             bail!("Arbiter 不支持 Linux 之外的操作系统，也不支持在 Linux 之外的操作系统导出");
         }
 
         let daynum = doc.config.dayidx;
         let mut files = Vec::new();
+        let mut warnings = Vec::new();
 
         // Arbiter 要求的目录结构（可能没有文件，需确保存在）
         for sub in ["data", "final", "players", "result", "filter", "tmp"] {
@@ -149,10 +154,10 @@ impl Dumper for ArbiterDumper {
                 && prob.subtasks.len() <= 1
                 && score_per_case * prob.data.len() as u32 != 100
             {
-                msg_warn!(
+                warnings.push(format!(
                     "题目 {} 的测试点数量不是 100 的约数，分数无法均分为整数。",
                     prob.name
-                );
+                ));
             }
 
             let c_args = doc
@@ -189,11 +194,17 @@ impl Dumper for ArbiterDumper {
                     match prob.problem_type {
                         ProblemType::Program => "SOURCE".into(),
                         ProblemType::Output => {
-                            msg_warn!("题目 {} 是提交答案型，Arbiter 可能不支持。", prob.name);
+                            warnings.push(format!(
+                                "题目 {} 是提交答案型，Arbiter 可能不支持。",
+                                prob.name
+                            ));
                             "SOURCE".into()
                         }
                         ProblemType::Interactive => {
-                            msg_warn!("题目 {} 是交互型，Arbiter 可能不支持。", prob.name);
+                            warnings.push(format!(
+                                "题目 {} 是交互型，Arbiter 可能不支持。",
+                                prob.name
+                            ));
                             "SOURCE".into()
                         }
                     },
@@ -249,11 +260,10 @@ impl Dumper for ArbiterDumper {
                         .map(|st| st.items.len())
                         .unwrap_or(1);
                     if count_in_subtask > 1 {
-                        msg_warn!(
+                        warnings.push(format!(
                             "题目 {} Subtask #{} 含多个测试点，Arbiter 不支持打包评测，将均分。",
-                            prob.name,
-                            case.subtask
-                        );
+                            prob.name, case.subtask
+                        ));
                     }
                     subtask_score / count_in_subtask as u32
                 } else {
@@ -264,7 +274,7 @@ impl Dumper for ArbiterDumper {
             }
 
             // Checker / filter
-            if let Some(stream) = self.build_filter(doc, prob).await? {
+            if let Some(stream) = self.build_filter(doc, prob, &mut warnings).await? {
                 files.push(OutputFile::File {
                     path: PathBuf::from(format!("arbiter/main/filter/{}_e", prob.name)),
                     bytes: stream,
@@ -325,6 +335,6 @@ impl Dumper for ArbiterDumper {
             }
         }
 
-        Ok(files)
+        Ok((files, warnings))
     }
 }
