@@ -1,8 +1,8 @@
 use crate::{
     prelude::*,
-    doc::rules::traits::{
+    doc::rules::{
         CheckImportance, CheckInfo, CheckManifest, CheckResult, CheckRule, FormatManifest,
-        FormatRule,
+        FormatRule, RuleFile,
     },
 };
 use autocorrect::{Severity, format_for, lint_for};
@@ -29,7 +29,7 @@ impl FormatRule for Autocorrect {
         &self,
         markdown_text: String,
         problem_config: ProblemConfig,
-    ) -> Result<(String, ProblemConfig)> {
+    ) -> Result<(String, ProblemConfig, Vec<RuleFile>)> {
         autocorrect::config::load(
             r#"
             rules:
@@ -41,10 +41,14 @@ impl FormatRule for Autocorrect {
         if format_result.has_error() {
             bail!("格式化失败：{}", format_result.error);
         }
-        Ok((format_result.out, problem_config))
+        Ok((format_result.out, problem_config, Vec::new()))
     }
 
-    fn apply_ast(&self, _: Document, _: ProblemConfig) -> Result<(Document, ProblemConfig)> {
+    fn apply_ast(
+        &self,
+        _: Document,
+        _: ProblemConfig,
+    ) -> Result<(Document, ProblemConfig, Vec<RuleFile>)> {
         unreachable!()
     }
 }

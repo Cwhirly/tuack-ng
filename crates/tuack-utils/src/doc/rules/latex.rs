@@ -1,6 +1,6 @@
 use crate::{
     prelude::*,
-    doc::rules::traits::{CheckImportance, CheckInfo, CheckManifest, CheckResult, CheckRule},
+    doc::rules::{CheckImportance, CheckInfo, CheckManifest, CheckResult, CheckRule},
 };
 use lazy_static::lazy_static;
 use regex::Regex;

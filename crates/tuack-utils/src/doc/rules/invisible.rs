@@ -1,8 +1,8 @@
 use crate::{
     prelude::*,
-    doc::rules::traits::{
+    doc::rules::{
         CheckImportance, CheckInfo, CheckManifest, CheckResult, CheckRule, FormatManifest,
-        FormatRule,
+        FormatRule, RuleFile,
     },
 };
 use tuack_ng_parser::ast::Document;
@@ -71,12 +71,16 @@ impl FormatRule for Invisible {
         &self,
         markdown_text: String,
         problem_config: ProblemConfig,
-    ) -> Result<(String, ProblemConfig)> {
+    ) -> Result<(String, ProblemConfig, Vec<RuleFile>)> {
         let cleaned_text = remove_invisible_chars(&markdown_text);
-        Ok((cleaned_text, problem_config))
+        Ok((cleaned_text, problem_config, Vec::new()))
     }
 
-    fn apply_ast(&self, _: Document, _: ProblemConfig) -> Result<(Document, ProblemConfig)> {
+    fn apply_ast(
+        &self,
+        _: Document,
+        _: ProblemConfig,
+    ) -> Result<(Document, ProblemConfig, Vec<RuleFile>)> {
         unreachable!()
     }
 }

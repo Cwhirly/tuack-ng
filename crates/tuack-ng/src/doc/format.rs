@@ -1,8 +1,11 @@
-use crate::doc::rules::traits::*;
-use tuack_config::CONFIG_FILE_NAME;
-use crate::{doc::rules::*, prelude::*};
+use crate::prelude::*;
 use clap::Args;
+use tuack_config::CONFIG_FILE_NAME;
 use tuack_ng_parser::parse;
+use tuack_utils::doc::rules::*;
+use tuack_utils::doc::rules::{
+    autocorrect, invisible, samples_should_be_external, samples_too_large,
+};
 
 #[derive(Args, Debug, Clone)]
 #[command(version)]
@@ -30,24 +33,40 @@ pub fn format(problem_config: &ProblemConfig) -> Result<()> {
 
     let formatters = get_formatters();
     let mut problem_config = problem_config.to_owned();
+    let mut extra_files: Vec<RuleFile> = Vec::new();
 
     for formatter in &formatters {
         // 每个规则先应用文本规则，再解析为 AST 应用 AST 规则
         if formatter.manifest().markdown_formatter {
             debug!("正在应用文本格式化规则 {}", formatter.manifest().name);
-            (markdown_text, problem_config) =
+            let files;
+            (markdown_text, problem_config, files) =
                 formatter.apply_markdown(markdown_text, problem_config)?;
+            extra_files.extend(files);
         }
 
         let mut ast = parse(&markdown_text);
 
         if formatter.manifest().ast_formatter {
             debug!("正在应用格式化规则 {}", formatter.manifest().name);
-            (ast, problem_config) = formatter.apply_ast(ast, problem_config)?;
+            let files;
+            (ast, problem_config, files) = formatter.apply_ast(ast, problem_config)?;
+            extra_files.extend(files);
         }
 
         // 渲染回 Markdown，供下一轮规则使用
         markdown_text = tuack_ng_parser::printers::render_markdown(&ast);
+
+        // 立即落盘本轮规则产物，供后续规则读取
+        // （如 SamplesTooLarge 需要检查 SamplesShouldBeExternal 抽取出的样例文件是否超限）
+        for file in &extra_files {
+            let target = problem_config.path.join(&file.path);
+            if let Some(parent) = target.parent() {
+                fs::create_dir_all(parent)?;
+            }
+            fs::write(&target, &file.content)?;
+        }
+        extra_files.clear();
     }
 
     fs::write(&markdown_path, markdown_text)?;

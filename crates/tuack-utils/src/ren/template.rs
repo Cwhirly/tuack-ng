@@ -1,9 +1,10 @@
 use crate::prelude::*;
-use tuack_utils::ren::manifest::TemplateManifest;
+use crate::ren::manifest::TemplateManifest;
 use crate::ren::tools;
 use anyhow::Result;
 use minijinja::{Environment, Value, context};
 use owo_colors::OwoColorize;
+use std::sync::{Arc, Mutex};
 
 fn input_file(problem: &ProblemConfig, file_io: bool) -> Result<String, minijinja::Error> {
     Ok(if file_io {
@@ -26,6 +27,7 @@ fn handle_sample(
     sample_id: u32,
     problem: &ProblemConfig,
     base_path: &Path,
+    warnings: &Arc<Mutex<Vec<String>>>,
 ) -> Result<String, minijinja::Error> {
     debug!("处理 sample 函数：{}", sample_id);
 
@@ -33,11 +35,11 @@ fn handle_sample(
     let sample_item = match problem.samples.iter().find(|s| s.id == sample_id) {
         Some(item) => item,
         None => {
-            msg_warn!(
+            warnings.lock().unwrap().push(format!(
                 "在题目 {} 中未找到样例 {}",
                 problem.name.magenta(),
                 sample_id.to_string().cyan()
-            );
+            ));
             return Err(minijinja::Error::new(
                 minijinja::ErrorKind::InvalidOperation,
                 format!("未找到样例 {}", sample_id),
@@ -65,7 +67,10 @@ fn handle_sample(
                 md.push_str("```\n\n");
             }
             Err(e) => {
-                msg_error!("读取输入文件失败：{:?} -> {}", input_path, e);
+                warnings
+                    .lock()
+                    .unwrap()
+                    .push(format!("读取输入文件失败：{:?} -> {}", input_path, e));
                 return Err(minijinja::Error::new(
                     minijinja::ErrorKind::InvalidOperation,
                     format!("读取输入文件失败 {}", e),
@@ -96,7 +101,10 @@ fn handle_sample(
                 md.push_str("```\n");
             }
             Err(e) => {
-                msg_error!("读取输出文件失败：{:?} -> {}", output_path, e);
+                warnings
+                    .lock()
+                    .unwrap()
+                    .push(format!("读取输出文件失败：{:?} -> {}", output_path, e));
                 return Err(minijinja::Error::new(
                     minijinja::ErrorKind::InvalidOperation,
                     format!("读取输出文件失败 {}", e),
@@ -115,16 +123,20 @@ fn handle_sample(
 }
 
 /// 处理 sample_file 函数
-fn handle_sample_file(sample_id: u32, problem: &ProblemConfig) -> Result<String, minijinja::Error> {
+fn handle_sample_file(
+    sample_id: u32,
+    problem: &ProblemConfig,
+    warnings: &Arc<Mutex<Vec<String>>>,
+) -> Result<String, minijinja::Error> {
     debug!("处理 sample_file 函数：{}", sample_id);
 
     // 检查样例是否存在
     if !problem.samples.iter().any(|s| s.id == sample_id) {
-        msg_warn!(
+        warnings.lock().unwrap().push(format!(
             "在题目 {} 中未找到样例 {}",
             problem.name.magenta(),
             sample_id.to_string().cyan()
-        );
+        ));
     }
 
     let text = format!(
@@ -151,7 +163,7 @@ fn handle_lua_table(
     })
 }
 
-/// 使用模板渲染函数
+/// 使用模板渲染函数；返回渲染结果与渲染过程中的警告（已带颜色）。
 pub fn render_template(
     template: &str,
     problem: &ProblemConfig,
@@ -159,7 +171,9 @@ pub fn render_template(
     contest: &ContestConfig,
     base_path: PathBuf,
     manifest: TemplateManifest,
-) -> Result<String> {
+) -> Result<(String, Vec<String>)> {
+    let warnings: Arc<Mutex<Vec<String>>> = Arc::new(Mutex::new(Vec::new()));
+
     // 创建环境
     let env = Environment::new();
 
@@ -169,8 +183,9 @@ pub fn render_template(
             Value::from_function({
                 let problem = problem.clone();
                 let base_path = base_path.clone();
+                let warnings = warnings.clone();
                 move |sample_id: u32| -> Result<String, minijinja::Error> {
-                    handle_sample(sample_id, &problem, &base_path)
+                    handle_sample(sample_id, &problem, &base_path, &warnings)
                 }
             }),
         ),
@@ -178,8 +193,9 @@ pub fn render_template(
             "file",
             Value::from_function({
                 let problem = problem.clone();
+                let warnings = warnings.clone();
                 move |sample_id: u32| -> Result<String, minijinja::Error> {
-                    handle_sample_file(sample_id, &problem)
+                    handle_sample_file(sample_id, &problem, &warnings)
                 }
             }),
         ),
@@ -279,7 +295,7 @@ pub fn render_template(
         s => statement
     };
 
-    // 渲染模板
     let result = env.render_str(template, ctx)?;
-    Ok(result)
+    let warnings = warnings.lock().unwrap().clone();
+    Ok((result, warnings))
 }

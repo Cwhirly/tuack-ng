@@ -1,27 +1,23 @@
-use crate::prelude::*;
-pub mod lua;
-pub mod processors;
-pub mod template;
-pub mod tools;
 use crate::context;
 use crate::context::gctx;
-use tuack_utils::ren::manifest::{TargetType, TemplateManifest};
-use crate::ren::processors::process_ast;
-use tuack_utils::ren::renderers::ImageCollector;
-use tuack_utils::ren::markdown::MarkdownRenderer;
-use tuack_utils::ren::typst::TypstRenderer;
-use crate::ren::template::render_template;
-use tuack_lib::ren::{
-    DateInfo, Problem, ProblemMeta, ProblemType, RenConfig, RenderDocument, Renderer,
-    SupportLanguage,
-};
-use tuack_utils::assets::FsAssetProvider;
+use crate::prelude::*;
 use clap::Args;
 use indexmap::IndexMap;
 use indicatif::ProgressBar;
 use opener::open;
 use std::time::Duration;
+use tuack_lib::ren::{
+    DateInfo, Problem, ProblemMeta, ProblemType, RenConfig, RenderDocument, Renderer,
+    SupportLanguage,
+};
 use tuack_ng_parser::parse;
+use tuack_utils::assets::FsAssetProvider;
+use tuack_utils::ren::manifest::{TargetType, TemplateManifest};
+use tuack_utils::ren::markdown::MarkdownRenderer;
+use tuack_utils::ren::processors::process_ast;
+use tuack_utils::ren::renderers::ImageCollector;
+use tuack_utils::ren::template::render_template;
+use tuack_utils::ren::typst::TypstRenderer;
 
 #[derive(Args, Debug)]
 #[command(version)]
@@ -180,7 +176,7 @@ fn build_render_document(
         }
 
         // 解析题面同时展开模板，移除注释
-        let content = render_template(
+        let (content, warnings) = render_template(
             re.replace_all(&fs::read_to_string(&statement_path)?, "")
                 .as_ref(),
             problem_config,
@@ -190,6 +186,19 @@ fn build_render_document(
             manifest.clone(),
         )
         .with_context(|| format!("读取题面文件/展开模板失败：{}", statement_path.display()))?;
+
+        if !warnings.is_empty() {
+            let joined = warnings
+                .iter()
+                .map(|w| format!("  {}", w))
+                .collect::<Vec<_>>()
+                .join("\n");
+            msg_warn!(
+                "在解析题目 {} 时产生了警告：\n{}",
+                problem_config.name.magenta(),
+                joined
+            );
+        }
 
         let mut ast = parse(&content);
         ast = process_ast(&mut ast, &manifest.processor)?;

@@ -3,6 +3,7 @@ pub mod checkers;
 pub mod command;
 pub mod compilers;
 pub mod data;
+pub mod doc;
 pub mod dump;
 pub mod prelude;
 pub mod process;

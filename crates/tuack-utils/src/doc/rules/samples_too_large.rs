@@ -1,8 +1,8 @@
 use crate::{
     prelude::*,
-    doc::rules::traits::{
+    doc::rules::{
         CheckImportance, CheckInfo, CheckManifest, CheckResult, CheckRule, FormatManifest,
-        FormatRule,
+        FormatRule, RuleFile,
     },
 };
 use lazy_static::lazy_static;
@@ -63,7 +63,7 @@ impl FormatRule for SamplesTooLarge {
         &self,
         markdown_text: String,
         problem_config: ProblemConfig,
-    ) -> Result<(String, ProblemConfig)> {
+    ) -> Result<(String, ProblemConfig, Vec<RuleFile>)> {
         let mut result = markdown_text.clone();
 
         // 查找文档中所有的 sample.text
@@ -110,10 +110,14 @@ impl FormatRule for SamplesTooLarge {
             result.replace_range(start..end, &replacement);
         }
 
-        Ok((result, problem_config))
+        Ok((result, problem_config, Vec::new()))
     }
 
-    fn apply_ast(&self, _: Document, _: ProblemConfig) -> Result<(Document, ProblemConfig)> {
+    fn apply_ast(
+        &self,
+        _: Document,
+        _: ProblemConfig,
+    ) -> Result<(Document, ProblemConfig, Vec<RuleFile>)> {
         unreachable!()
     }
 }

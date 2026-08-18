@@ -1,8 +1,8 @@
 use crate::{
     prelude::*,
-    doc::rules::traits::{
+    doc::rules::{
         CheckImportance, CheckInfo, CheckManifest, CheckResult, CheckRule, FormatManifest,
-        FormatRule,
+        FormatRule, RuleFile,
     },
 };
 use regex::Regex;
@@ -186,7 +186,11 @@ impl FormatRule for SamplesShouldBeExternal {
         }
     }
 
-    fn apply_markdown(&self, _: String, _: ProblemConfig) -> Result<(String, ProblemConfig)> {
+    fn apply_markdown(
+        &self,
+        _: String,
+        _: ProblemConfig,
+    ) -> Result<(String, ProblemConfig, Vec<RuleFile>)> {
         unreachable!()
     }
 
@@ -194,27 +198,29 @@ impl FormatRule for SamplesShouldBeExternal {
         &self,
         doc: Document,
         mut problem_config: ProblemConfig,
-    ) -> Result<(Document, ProblemConfig)> {
+    ) -> Result<(Document, ProblemConfig, Vec<RuleFile>)> {
         let result = self.format(doc, &problem_config)?;
 
+        let mut files = Vec::new();
         for item in result.1 {
             let index = item.sample_item.id as usize;
-            let sample_path = problem_config.path.join("sample");
-
-            if !sample_path.exists() {
-                fs::create_dir(&sample_path)?;
-            }
 
             problem_config.samples.push(SampleItem {
                 id: index as u32,
                 ..item.sample_item
             });
 
-            fs::write(sample_path.join(format!("{}.in", index)), &item.input)?;
-            fs::write(sample_path.join(format!("{}.ans", index)), &item.output)?;
+            files.push(RuleFile {
+                path: PathBuf::from(format!("sample/{}.in", index)),
+                content: item.input.into_bytes(),
+            });
+            files.push(RuleFile {
+                path: PathBuf::from(format!("sample/{}.ans", index)),
+                content: item.output.into_bytes(),
+            });
         }
 
-        Ok((result.0, problem_config))
+        Ok((result.0, problem_config, files))
     }
 }
 

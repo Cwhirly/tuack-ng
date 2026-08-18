@@ -11,7 +11,6 @@ repository.workspace = true
 anstream = "1.0.0"
 anyhow = { version = "1.0.100", features = ["backtrace"] }
 async-trait = "0.1.89"
-autocorrect = "2.14.2"
 bytesize = { version = "2.3.1", features = ["serde"] }
 chrono = "0.4.42"
 clap = { version = "4.5.53", features = ["cargo", "derive"] }
@@ -23,21 +22,11 @@ dialoguer = "0.12.0"
 dirs = "6.0.0"
 dunce = "1.0.5"
 evalexpr = "13.1.0"
-html-builder = "0.5.1"
 indexmap = { version = "2.13.0", features = ["serde"] }
 indicatif = "0.18.3"
 indicatif-log-bridge = "0.2.3"
-lazy_static = "1.5.0"
 log = "0.4.29"
 log4rs = "1.4.0"
-minijinja = "2.14.0"
-mlua = { version = "0.12.0", features = [
-    "lua55",
-    "serde",
-    "send",
-    "anyhow",
-    "vendored",
-] }
 natord = "1.0.9"
 nom = "8.0.0"
 opener = "0.8.4"
