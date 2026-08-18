@@ -2244,7 +2244,7 @@ dependencies = [
 
 [[package]]
 name = "tuack-ng-parser"
-version = "1.0.0"
+version = "1.0.1"
 dependencies = [
  "rushdown",
  "unicode-width 0.1.14",
@@ -2256,7 +2256,6 @@ version = "1.1.0-alpha.1"
 dependencies = [
  "anyhow",
  "async-trait",
- "html-builder",
  "indexmap",
  "log",
  "quick-xml",

@@ -13,11 +13,17 @@ async-trait.workspace = true
 indexmap.workspace = true
 serde.workspace = true
 serde_many.workspace = true
-tokio.workspace = true
+tokio = { workspace = true, features = [
+    "fs",
+    "io-util",
+    "macros",
+    "process",
+    "rt",
+    "time",
+] }
 tuack-lib = { path = "../tuack-lib" }
 tuack-config = { path = "../tuack-config" }
 
-html-builder = "0.5.1"
 log = "0.4.29"
 quick-xml = { version = "0.39.0", features = ["serialize"] }
 serde_json = { version = "1.0.145", features = ["preserve_order"] }
