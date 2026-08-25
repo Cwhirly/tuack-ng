@@ -374,3 +374,13 @@ fn block_heading_span_covers_whole_line() {
     let span = item.span.expect("Heading 应有 span");
     assert_eq!(&src[span.start..span.stop], "## 样例 1 输入");
 }
+
+#[test]
+fn block_latex_span_covers_whole_block() {
+    // LatexBlock 的 span 应覆盖整块（含两端 `$$`，不含结尾换行）。
+    let src = "前文\n$$\n公式\n$$\n后文\n";
+    let out = collect(src);
+    let item = first(&out, "LatexBlock");
+    let span = item.span.expect("LatexBlock 应有 span");
+    assert_eq!(&src[span.start..span.stop], "$$\n公式\n$$");
+}

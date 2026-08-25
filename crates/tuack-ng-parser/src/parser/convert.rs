@@ -196,7 +196,7 @@ impl<'a> Ctx<'a> {
                     .downcast_ref::<super::ext::latex::LatexBlockNode>()
                 {
                     let content = block_latex.content.clone();
-                    let span = self.span_of(node);
+                    let span = Some(Span::new(block_latex.start, block_latex.stop));
                     self.blocks.push(Spanned {
                         value: BlockKind::LatexBlock(content),
                         span,
