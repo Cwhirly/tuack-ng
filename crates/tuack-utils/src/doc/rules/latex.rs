@@ -152,7 +152,8 @@ impl LatexVisitor {
         let cleaned = latex.replace("^{*}", "").replace("^*", "");
         if MULTIPLY_STAR.is_match(&cleaned) {
             problems.push(LatexProblem {
-                info: "一般不用星号 `*` 做乘号，应该用 `\\times`（叉乘）、`\\cdot`（点乘）或省略".to_string(),
+                info: "一般不用星号 `*` 做乘号，应该用 `\\times`（叉乘）、`\\cdot`（点乘）或省略"
+                    .to_string(),
                 span: base.map(|b| Span::new(b, b + latex.len())),
                 importance: CheckImportance::Warn,
             });

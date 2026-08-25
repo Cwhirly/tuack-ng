@@ -54,3 +54,17 @@ pub fn line_to_byte_span(source: &str, line: usize) -> Option<tuack_ng_parser::S
         None
     }
 }
+
+/// 将 span 起点拓展到其所在行的行尾（不含换行符）。
+pub fn extend_to_line_end(
+    source: &str,
+    span: Option<tuack_ng_parser::Span>,
+) -> Option<tuack_ng_parser::Span> {
+    let s = span?;
+    let start = s.start.min(source.len());
+    let stop = source[start..]
+        .find('\n')
+        .map(|i| start + i)
+        .unwrap_or(source.len());
+    Some(tuack_ng_parser::Span::new(start, stop))
+}

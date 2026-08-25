@@ -88,9 +88,10 @@ fn render_message(markdown: &str, path: &Path, rule_id: &str, message: &CheckInf
         ..Config::default()
     };
     if emit_to_write_style(&mut buffer, &config, &files, &diagnostic).is_ok()
-        && let Ok(s) = String::from_utf8(buffer.into_inner()) {
-            crate::_internal_print!(eprintln, "{}", s);
-        }
+        && let Ok(s) = String::from_utf8(buffer.into_inner())
+    {
+        crate::_internal_print!(eprintln, "{}", s);
+    }
 }
 
 fn print_messages(messages: CheckResult, path: &Path, checker: &dyn CheckRule, markdown: &str) {

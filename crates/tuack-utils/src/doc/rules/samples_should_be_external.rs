@@ -244,7 +244,7 @@ impl CheckRule for SamplesShouldBeExternal {
     fn check_ast(
         &self,
         doc: &Document,
-        _source: &str,
+        source: &str,
         problem_config: &ProblemConfig,
     ) -> Result<CheckResult> {
         let result = self.format(doc.to_owned(), problem_config)?;
@@ -254,11 +254,11 @@ impl CheckRule for SamplesShouldBeExternal {
         for item in result.1 {
             let index = item.sample_item.id as usize;
             let mut message = CheckInfo::new(
-                item.span,
+                crate::doc::span::extend_to_line_end(source, item.span),
                 format!("ID 为 {} 的样例内置在了题目内", index),
                 CheckImportance::Error,
             );
-            message.secondary_span = item.output_span;
+            message.secondary_span = crate::doc::span::extend_to_line_end(source, item.output_span);
             messages.push(message);
         }
         Ok(CheckResult::Tagged(messages))
