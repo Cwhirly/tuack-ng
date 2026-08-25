@@ -364,3 +364,13 @@ fn strong_inner_cjk_span_precision() {
     assert_eq!((span.start, span.stop), (11, 17), "span 应精确到字节 11..17");
     assert_eq!(&src[span.start..span.stop], "世界");
 }
+
+#[test]
+fn block_heading_span_covers_whole_line() {
+    // Heading 的 span 应覆盖整行（start 到最后一个行内节点末尾），而非只到第一个节点。
+    let src = "前文\n## 样例 1 输入\n后文\n";
+    let out = collect(src);
+    let item = first(&out, "Heading");
+    let span = item.span.expect("Heading 应有 span");
+    assert_eq!(&src[span.start..span.stop], "## 样例 1 输入");
+}
