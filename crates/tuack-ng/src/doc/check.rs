@@ -1,15 +1,15 @@
 use crate::prelude::*;
-use tuack_utils::doc::rules::*;
-use tuack_utils::doc::rules::{
-    autocorrect, html, invisible, latex, samples_not_found, samples_should_be_external,
-    samples_too_large,
-};
 use clap::Args;
 use codespan_reporting::diagnostic::{Diagnostic, Label, LabelStyle, Severity};
 use codespan_reporting::files::SimpleFile;
 use codespan_reporting::term::{Chars, Config, emit_to_write_style};
 use termcolor::Buffer;
 use tuack_ng_parser::parse;
+use tuack_utils::doc::rules::*;
+use tuack_utils::doc::rules::{
+    autocorrect, html, invisible, latex, samples_not_found, samples_should_be_external,
+    samples_too_large,
+};
 
 #[derive(Args, Debug, Clone)]
 #[command(version)]
@@ -69,8 +69,7 @@ fn render_message(markdown: &str, path: &Path, rule_id: &str, message: &CheckInf
             whole_line_range(markdown, Some(secondary.start))
         };
         labels.push(
-            Label::new(LabelStyle::Secondary, (), secondary_range)
-                .with_message("样例输出块在此"),
+            Label::new(LabelStyle::Secondary, (), secondary_range).with_message("样例输出块在此"),
         );
     }
 
@@ -88,11 +87,10 @@ fn render_message(markdown: &str, path: &Path, rule_id: &str, message: &CheckInf
         chars: Chars::box_drawing(),
         ..Config::default()
     };
-    if emit_to_write_style(&mut buffer, &config, &files, &diagnostic).is_ok() {
-        if let Ok(s) = String::from_utf8(buffer.into_inner()) {
+    if emit_to_write_style(&mut buffer, &config, &files, &diagnostic).is_ok()
+        && let Ok(s) = String::from_utf8(buffer.into_inner()) {
             crate::_internal_print!(eprintln, "{}", s);
         }
-    }
 }
 
 fn print_messages(messages: CheckResult, path: &Path, checker: &dyn CheckRule, markdown: &str) {

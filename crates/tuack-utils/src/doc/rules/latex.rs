@@ -141,7 +141,7 @@ impl LatexVisitor {
             let start = cap.start();
             if start == 0 || latex.as_bytes().get(start - 1).is_none_or(|&b| b != b'\\') {
                 problems.push(LatexProblem {
-                    info: format!("`mod` 应该写成 `\\bmod` 或 `\\pmod{{}}`"),
+                    info: "`mod` 应该写成 `\\bmod` 或 `\\pmod{}`".to_string(),
                     span: Self::cap_span(base, cap.start(), cap.end()),
                     importance: CheckImportance::Warn,
                 });
@@ -152,9 +152,7 @@ impl LatexVisitor {
         let cleaned = latex.replace("^{*}", "").replace("^*", "");
         if MULTIPLY_STAR.is_match(&cleaned) {
             problems.push(LatexProblem {
-                info: format!(
-                    "一般不用星号 `*` 做乘号，应该用 `\\times`（叉乘）、`\\cdot`（点乘）或省略"
-                ),
+                info: "一般不用星号 `*` 做乘号，应该用 `\\times`（叉乘）、`\\cdot`（点乘）或省略".to_string(),
                 span: base.map(|b| Span::new(b, b + latex.len())),
                 importance: CheckImportance::Warn,
             });
@@ -173,7 +171,7 @@ impl LatexVisitor {
         let without_fraction = FRACTION_CMD.replace_all(latex, "");
         if DIVIDE_SLASH.is_match(&without_fraction) {
             problems.push(LatexProblem {
-                info: format!("一般不用斜杠 `/` 做除号，应该用 `\\frac{{}}{{}}` 或 `\\div`"),
+                info: "一般不用斜杠 `/` 做除号，应该用 `\\frac{}{}` 或 `\\div`".to_string(),
                 span: base.map(|b| Span::new(b, b + latex.len())),
                 importance: CheckImportance::Warn,
             });
@@ -221,7 +219,7 @@ impl LatexVisitor {
         // 前后空格
         if latex.starts_with(' ') || latex.ends_with(' ') {
             problems.push(LatexProblem {
-                info: format!("前后不应该有空格"),
+                info: "前后不应该有空格".to_string(),
                 span: base.map(|b| Span::new(b, b + latex.len())),
                 importance: CheckImportance::Error,
             });

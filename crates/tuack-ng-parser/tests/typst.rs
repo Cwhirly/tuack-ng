@@ -95,8 +95,14 @@ fn typst_code_block_crlf() {
     // CRLF 行尾不应残留末尾 `\r`（原 bug：`trim_end_matches('\n')` 留下孤立 `\r`）。
     let src = "```txt\r\nline 1\r\nline 2\r\n```";
     let out = render_typst(&tuack_ng_parser::parse(src));
-    assert!(out.contains("line 1\\r\\nline 2"), "应转义内部 CRLF，实际：{out:?}");
-    assert!(!out.contains("line 2\\r\""), "不应残留末尾 \\r，实际：{out:?}");
+    assert!(
+        out.contains("line 1\\r\\nline 2"),
+        "应转义内部 CRLF，实际：{out:?}"
+    );
+    assert!(
+        !out.contains("line 2\\r\""),
+        "不应残留末尾 \\r，实际：{out:?}"
+    );
     assert!(!out.contains("2\\r\""), "不应以 \\r 结尾，实际：{out:?}");
 }
 
