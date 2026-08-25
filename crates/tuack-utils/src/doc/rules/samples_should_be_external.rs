@@ -86,6 +86,7 @@ pub struct ExportedSample {
     output: String,
     sample_item: SampleItem,
     span: Option<Span>,
+    output_span: Option<Span>,
 }
 
 pub struct SamplesShouldBeExternal;
@@ -161,6 +162,8 @@ impl SamplesShouldBeExternal {
                     },
                     // 定位到样例的第一个块（标题块）起始位置。
                     span: queue[0].span,
+                    // 输出标题块作为次要定位。
+                    output_span: queue[2].span,
                 });
 
                 new_blocks.push(Spanned::plain(BlockKind::Paragraph(vec![Spanned::plain(
@@ -241,7 +244,7 @@ impl CheckRule for SamplesShouldBeExternal {
     fn check_ast(
         &self,
         doc: &Document,
-        source: &str,
+        _source: &str,
         problem_config: &ProblemConfig,
     ) -> Result<CheckResult> {
         let result = self.format(doc.to_owned(), problem_config)?;
@@ -250,13 +253,13 @@ impl CheckRule for SamplesShouldBeExternal {
 
         for item in result.1 {
             let index = item.sample_item.id as usize;
-            let (line, col) = crate::doc::span::span_to_line_col(source, item.span);
-            messages.push(CheckInfo {
-                line,
-                col,
-                info: format!("ID 为 {} 的样例内置在了题目内", index),
-                importance: CheckImportance::Error,
-            });
+            let mut message = CheckInfo::new(
+                item.span,
+                format!("ID 为 {} 的样例内置在了题目内", index),
+                CheckImportance::Error,
+            );
+            message.secondary_span = item.output_span;
+            messages.push(message);
         }
         Ok(CheckResult::Tagged(messages))
     }
