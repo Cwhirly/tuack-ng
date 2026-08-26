@@ -2178,7 +2178,7 @@ dependencies = [
 
 [[package]]
 name = "tuack-config"
-version = "1.1.0-alpha.1"
+version = "1.1.0-alpha.2"
 dependencies = [
  "anstream",
  "anyhow",
@@ -2197,7 +2197,7 @@ dependencies = [
 
 [[package]]
 name = "tuack-lib"
-version = "1.1.0-alpha.1"
+version = "1.1.0-alpha.2"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -2211,7 +2211,7 @@ dependencies = [
 
 [[package]]
 name = "tuack-ng"
-version = "1.1.0-alpha.1"
+version = "1.1.0-alpha.2"
 dependencies = [
  "anstream",
  "anyhow",
@@ -2261,7 +2261,7 @@ dependencies = [
 
 [[package]]
 name = "tuack-ng-parser"
-version = "1.0.1"
+version = "1.0.2"
 dependencies = [
  "rushdown",
  "unicode-width 0.1.14",
@@ -2269,7 +2269,7 @@ dependencies = [
 
 [[package]]
 name = "tuack-utils"
-version = "1.1.0-alpha.1"
+version = "1.1.0-alpha.2"
 dependencies = [
  "anyhow",
  "async-trait",
