@@ -31,8 +31,8 @@ let typ = render_typst(&doc);
 
 | Category    | Syntax                             | Description                                                         |
 | ----------- | ---------------------------------- | ------------------------------------------------------------------- |
-| Paragraph   | `a\nb`                             | Soft break → SoftBreak; `a  \nb` / `a\\\nb` hard break → LineBreak |
-| Headings    | `# H`, `H\n===`                    | ATX 1–6, Setext 1/2                                                |
+| Paragraph   | `a\nb`                             | Soft break → SoftBreak; `a  \nb` / `a\\\nb` hard break → LineBreak  |
+| Headings    | `# H`, `H\n===`                    | ATX 1–6, Setext 1/2                                                 |
 | Lists       | `- a` / `1. a`                     | Unordered (`-`/`*`/`+`), ordered (always rendered from 1), nested   |
 | Blockquotes | `> quote`                          | Nested supported                                                    |
 | Code        | `` `code` ``, fenced block         | Inline, fenced/indented blocks                                      |
@@ -52,8 +52,8 @@ let typ = render_typst(&doc);
 | Syntax                                                    | Description                                            |
 | --------------------------------------------------------- | ------------------------------------------------------ |
 | `:::note`                                                 | Plain container; `kind` from class                     |
-| `:::figure{caption="caption"}`                            | Figure container; caption → Typst `#figure(caption:)` |
-| `:::align{right}` / `:::align{center}` / `:::align{left}` | Alignment container; → Typst `#align(...)`            |
+| `:::figure{caption="caption"}`                            | Figure container; caption → Typst `#figure(caption:)`  |
+| `:::align{right}` / `:::align{center}` / `:::align{left}` | Alignment container; → Typst `#align(...)`             |
 | `:::a{key=val}`                                           | Key-value params                                       |
 | `:::{aa, bb, b=c, c=d}`                                   | Mixed list: bare flags + key-value pairs               |
 | Nested                                                    | Containers can be nested arbitrarily                   |
