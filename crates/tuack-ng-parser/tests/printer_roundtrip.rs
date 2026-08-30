@@ -107,3 +107,11 @@ fn roundtrip_align_container() {
     round_trip_is_idempotent(":::align{center}\ntext\n:::");
     round_trip_is_idempotent(":::figure{caption=cap}\ntext\n:::");
 }
+
+#[test]
+fn roundtrip_container_param_escaping() {
+    // KeyValue 值含 `"`/`&`/换行时，打印端应重编码为实体以保证往返幂等。
+    round_trip_is_idempotent(":::figure{caption=\"A &quot;B&quot; C\"}\ntext\n:::");
+    round_trip_is_idempotent(":::figure{caption=\"x &amp; y\"}\ntext\n:::");
+    round_trip_is_idempotent(":::figure{caption=\"a&#10;b\"}\ntext\n:::");
+}

@@ -157,7 +157,9 @@ fn render_block(block: &BlockKind, out: &mut String, _indent: usize) {
                     .iter()
                     .map(|p| match p {
                         ContainerParam::Flag(k) => k.clone(),
-                        ContainerParam::KeyValue(k, v) => format!("{k}=\"{v}\""),
+                        ContainerParam::KeyValue(k, v) => {
+                            format!("{k}=\"{}\"", escape_attr_value(v))
+                        }
                     })
                     .collect::<Vec<_>>()
                     .join(" ");
@@ -179,6 +181,24 @@ fn render_block(block: &BlockKind, out: &mut String, _indent: usize) {
         }
         BlockKind::Empty => {}
     }
+}
+
+/// 转义属性值中会破坏 fenced-div 语法的字符，保证 `key="value"` 往返幂等。
+///
+/// 解析端（`parse_attr_value` + `resolve_attr_entities`）会解码 HTML 实体与数字引用，
+/// 因此打印端需把 `&`/`"`/换行重编码为实体，否则值里出现这些字符会破坏 `{...}` 属性块。
+fn escape_attr_value(v: &str) -> String {
+    let mut out = String::with_capacity(v.len());
+    for c in v.chars() {
+        match c {
+            '&' => out.push_str("&amp;"),
+            '"' => out.push_str("&quot;"),
+            '\n' => out.push_str("&#10;"),
+            '\r' => out.push_str("&#13;"),
+            _ => out.push(c),
+        }
+    }
+    out
 }
 
 fn render_inlines(inlines: &[Inline], out: &mut String) {
