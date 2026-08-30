@@ -42,7 +42,7 @@ let typ = render_typst(&doc);
 | Images      | `![alt](url){width=..}`            | With attributes                                                    |
 | LaTeX       | `$x$` `$$...$$`                    | Inline / block (own line only)                                     |
 | Footnotes   | `[^label]` `[^label]: content`     | Reference + definition                                             |
-| Containers  | `:::kind`                          | fenced-div, nested with params                                     |
+| Containers  | `:::kind`                          | fenced-div, nested with params; `:::align{right}`/`:::align{center}` for alignment |
 | HTML        | `<div>` `<span>`                   | Block / inline raw                                                 |
 
 ## Development

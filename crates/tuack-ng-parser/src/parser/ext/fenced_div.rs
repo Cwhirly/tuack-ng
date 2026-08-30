@@ -11,7 +11,7 @@ use std::rc::Rc;
 use rushdown::context::{ContextKey, ContextKeyRegistry, UsizeValue};
 use rushdown::parser::{
     AnyBlockParser, BlockParser, Context, NoParserOptions, PRIORITY_LIST, Parser, ParserExtension,
-    ParserExtensionFn, State, parse_attributes,
+    ParserExtensionFn, State,
 };
 use rushdown::text::{self, BlockReader, EOS, Reader as _};
 use rushdown::util::{is_punct, is_space};
@@ -165,7 +165,7 @@ fn parse_opening_fence(
         return None;
     }
     let mut attributes = if b == b'{' {
-        parse_attributes(reader)?
+        parse_brace_attributes(reader)?
     } else {
         // 无括号形式：`:::note` → 视为 class。
         let (line, seg) = reader.peek_line_bytes()?;
@@ -184,9 +184,10 @@ fn parse_opening_fence(
         attributes
     };
     reader.skip_spaces();
-    // kind 后跟 `{key=val}`：追加解析属性（markdown-ppp 风格 `:::figure{caption=..}`）。
+    // kind 后跟 `{key=val}`：追加解析属性（markdown-ppp 风格 `:::figure{caption=..}`，
+    // 也支持无值裸参数，如 `:::align{right}`）。
     if reader.peek_byte() == b'{' {
-        if let Some(extra) = parse_attributes(reader) {
+        if let Some(extra) = parse_brace_attributes(reader) {
             attributes.extend(extra);
         }
     }
@@ -199,6 +200,131 @@ fn parse_opening_fence(
     let node_ref = arena.new_node(FencedDiv::new(depth));
     arena[node_ref].attributes_mut().extend(attributes);
     Some(node_ref)
+}
+
+/// 解析 `{...}` 属性块。
+///
+/// 在 rushdown `parse_attributes` 支持的 `#id`、`.class`、`key="value"`、`key=value`
+/// 之外，额外支持无值的裸参数（如 `:::align{right}` → `right=""`）。
+fn parse_brace_attributes(reader: &mut BlockReader) -> Option<Attributes> {
+    let (saved_line, saved_position) = reader.position();
+    reader.skip_spaces();
+    if reader.peek_byte() != b'{' {
+        reader.set_position(saved_line, saved_position);
+        return None;
+    }
+    reader.advance(1);
+    let mut attrs = Attributes::new();
+    loop {
+        reader.skip_spaces();
+        if reader.peek_byte() == b'}' {
+            reader.advance(1);
+            return Some(attrs);
+        }
+        let (line, _seg) = reader.peek_line_bytes()?;
+        if line.is_empty() {
+            reader.set_position(saved_line, saved_position);
+            return None;
+        }
+        let first = line[0];
+        let (name, value) = if first == b'#' || first == b'.' {
+            // `#id` / `.class` 简写。
+            reader.advance(1);
+            let (line, seg) = reader.peek_line_bytes()?;
+            let i = line
+                .iter()
+                .take_while(|&&b| {
+                    !is_space(b)
+                        && (!is_punct(b) || b == b'_' || b == b'-' || b == b':' || b == b'.')
+                })
+                .count();
+            if i == 0 {
+                reader.set_position(saved_line, saved_position);
+                return None;
+            }
+            reader.advance(i);
+            let value = seg.with_stop(seg.start() + i).into();
+            let name = if first == b'#' { "id" } else { "class" };
+            (name.to_string(), value)
+        } else {
+            // `key=value` 或裸 `key`（空值）。
+            if !(first.is_ascii_alphabetic() || first == b'_' || first == b':') {
+                reader.set_position(saved_line, saved_position);
+                return None;
+            }
+            let i = line
+                .iter()
+                .take_while(|&&b| {
+                    b.is_ascii_alphabetic()
+                        || b.is_ascii_digit()
+                        || b == b'_'
+                        || b == b'-'
+                        || b == b':'
+                        || b == b'.'
+                })
+                .count();
+            let name = String::from_utf8_lossy(&line[..i]).into_owned();
+            reader.advance(i);
+            reader.skip_spaces();
+            if reader.peek_byte() == b'=' {
+                reader.advance(1);
+                let value = parse_attr_value(reader)?;
+                (name, value)
+            } else {
+                (name, text::MultilineValue::Empty)
+            }
+        };
+        if name == "class" && attrs.contains_key("class") {
+            let s = String::from(attrs.get("class").unwrap().str(reader.source()));
+            attrs.insert(name, (s + " " + &value.str(reader.source())).into());
+        } else {
+            attrs.insert(name, value);
+        }
+        reader.skip_spaces();
+        if reader.peek_byte() == b',' {
+            reader.advance(1);
+        }
+    }
+}
+
+/// 解析单个属性值：`"quoted"`、`'quoted'` 或未加引号的 `unquoted`。
+fn parse_attr_value(reader: &mut BlockReader) -> Option<text::MultilineValue> {
+    reader.skip_spaces();
+    match reader.peek_byte() {
+        b'"' | b'\'' => {
+            let quote = reader.peek_byte();
+            reader.advance(1);
+            let (line, seg) = reader.peek_line_bytes()?;
+            if let Some(i) = line.iter().position(|&b| b == quote) {
+                reader.advance(i + 1);
+                Some(seg.with_stop(seg.start() + i).into())
+            } else {
+                None
+            }
+        }
+        _ => {
+            let (line, seg) = reader.peek_line_bytes()?;
+            let i = line
+                .iter()
+                .take_while(|&&b| {
+                    !is_space(b)
+                        && b != b'}'
+                        && b != b'"'
+                        && b != b'\''
+                        && b != b'='
+                        && b != b'<'
+                        && b != b'>'
+                        && b != b'`'
+                        && b != b','
+                })
+                .count();
+            if i == 0 {
+                return None;
+            }
+            reader.advance(i);
+            Some(seg.with_stop(seg.start() + i).into())
+        }
+    }
 }
 
 impl From<FencedDivBlockParser> for AnyBlockParser {
@@ -221,10 +347,11 @@ pub fn fenced_div_parser_extension() -> impl ParserExtension {
 /// 从扩展节点提取容器数据（kind + params）。
 ///
 /// kind 取 `class` 属性（`:::note` / `:::{.note}`），其余属性作为 params。
+/// 有值属性转 `ContainerParam::KeyValue`，无值裸属性转 `ContainerParam::Flag`。
 pub(crate) fn fenced_div_to_container(
     attrs: &Attributes,
     source: &str,
-) -> (String, Vec<(String, String)>) {
+) -> (String, Vec<crate::ast::ContainerParam>) {
     let mut kind = String::new();
     let mut params = Vec::new();
     for (k, v) in attrs.iter() {
@@ -232,9 +359,12 @@ pub(crate) fn fenced_div_to_container(
         if k == "class" {
             kind = val;
         } else if k == "id" {
-            params.push(("id".to_string(), val));
+            params.push(crate::ast::ContainerParam::KeyValue("id".to_string(), val));
+        } else if val.is_empty() {
+            // 无值裸属性 → Flag。
+            params.push(crate::ast::ContainerParam::Flag(k.to_string()));
         } else {
-            params.push((k.to_string(), val));
+            params.push(crate::ast::ContainerParam::KeyValue(k.to_string(), val));
         }
     }
     (kind, params)

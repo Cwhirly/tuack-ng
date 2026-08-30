@@ -42,7 +42,7 @@ let typ = render_typst(&doc);
 | 图片        | `![alt](url){width=..}`            | 支持属性                                                   |
 | LaTeX       | `$x$` `$$...$$`                    | 行内 / 块级（独占行）                                      |
 | 脚注        | `[^label]` `[^label]: 内容`        | 引用 + 定义                                                |
-| 容器        | `:::kind`                          | fenced-div，支持嵌套与参数                                 |
+| 容器        | `:::kind`                          | fenced-div，支持嵌套与参数；`:::align{right}`/`:::align{center}` 用于对齐 |
 | HTML        | `<div>` `<span>`                   | 块级 / 行内 raw                                            |
 
 ## 开发

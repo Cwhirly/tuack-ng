@@ -99,3 +99,11 @@ fn roundtrip_reference_links() {
 fn roundtrip_autolink() {
     round_trip_is_idempotent("Visit <https://example.com> for details");
 }
+
+#[test]
+fn roundtrip_align_container() {
+    // 对齐容器（裸参数）应保真往返：`:::align{right}` 渲染回不带 `=""`。
+    round_trip_is_idempotent(":::align{right}\ntext\n:::");
+    round_trip_is_idempotent(":::align{center}\ntext\n:::");
+    round_trip_is_idempotent(":::figure{caption=cap}\ntext\n:::");
+}

@@ -2,7 +2,7 @@
 //!
 //! 表格**不处理合并**（`<`/`^` 原样输出）。
 
-use crate::ast::block::{BlockKind, CodeBlockKind, HeadingKind, SetextHeading};
+use crate::ast::block::{BlockKind, CodeBlockKind, ContainerParam, HeadingKind, SetextHeading};
 use crate::ast::inline::{InlineKind, LinkReferenceKind};
 use crate::ast::list::{ListBulletKind, ListKind};
 use crate::ast::{Document, Inline};
@@ -151,10 +151,14 @@ fn render_block(block: &BlockKind, out: &mut String, _indent: usize) {
             out.push_str(":::");
             out.push_str(&c.kind);
             if !c.params.is_empty() {
+                // Flag 渲染为裸 `key`（如 `:::align{right}`），KeyValue 输出 `key="value"`。
                 let params = c
                     .params
                     .iter()
-                    .map(|(k, v)| format!("{k}=\"{v}\""))
+                    .map(|p| match p {
+                        ContainerParam::Flag(k) => k.clone(),
+                        ContainerParam::KeyValue(k, v) => format!("{k}=\"{v}\""),
+                    })
                     .collect::<Vec<_>>()
                     .join(" ");
                 out.push_str(&format!("{{{params}}}"));
