@@ -104,7 +104,7 @@ fn container_pandoc_style() {
 
 #[test]
 fn container_bare_param() {
-    // 无值裸参数 `:::align{right}` → param ("right", "")。
+    // 无值裸参数 `:::align{right}` → Flag("right")。
     for src in [
         ":::align{right}\n内容\n:::\n",
         ":::align {right}\n内容\n:::\n",
@@ -142,5 +142,40 @@ fn container_mixed_bare_and_keyvalue() {
             ContainerParam::KeyValue("b".to_string(), "c".to_string()),
             ContainerParam::KeyValue("c".to_string(), "d".to_string()),
         ]
+    );
+}
+
+#[test]
+fn container_empty_quoted_value() {
+    // `key=""` 是显式空值，应保留为 KeyValue("","")，而非误判为裸 Flag。
+    let doc = tuack_ng_parser::parse(":::figure{caption=\"\"}\n内容\n:::\n");
+    let c = match &doc.blocks[0].value {
+        BlockKind::Container(c) => c,
+        other => panic!("应为 Container，实际 {other:?}"),
+    };
+    assert_eq!(c.kind, "figure");
+    assert_eq!(
+        c.params,
+        vec![ContainerParam::KeyValue(
+            "caption".to_string(),
+            String::new()
+        )]
+    );
+}
+
+#[test]
+fn container_entity_reference() {
+    // 属性值中的 HTML 实体/数字引用应被解析（与 rushdown parse_attributes 一致）。
+    let doc = tuack_ng_parser::parse(":::figure{caption=\"A &amp; B &quot;C&quot;\"}\n内容\n:::\n");
+    let c = match &doc.blocks[0].value {
+        BlockKind::Container(c) => c,
+        other => panic!("应为 Container，实际 {other:?}"),
+    };
+    assert_eq!(
+        c.params,
+        vec![ContainerParam::KeyValue(
+            "caption".to_string(),
+            "A & B \"C\"".to_string()
+        )]
     );
 }

@@ -166,6 +166,27 @@ fn typst_align_center() {
 }
 
 #[test]
+fn typst_align_left() {
+    let src = ":::align{left}\n内容\n:::";
+    let out = render_typst(&tuack_ng_parser::parse(src));
+    assert!(
+        out.contains("#align(left)[#par[#\"内容\"]]"),
+        "应输出 #align(left)[...]，实际：{out:?}"
+    );
+}
+
+#[test]
+fn typst_align_keyvalue_true() {
+    // `right=true` 键值写法应与裸 `right` 等价。
+    let src = ":::align{right=true}\n内容\n:::";
+    let out = render_typst(&tuack_ng_parser::parse(src));
+    assert!(
+        out.contains("#align(right)[#par[#\"内容\"]]"),
+        "应输出 #align(right)[...]，实际：{out:?}"
+    );
+}
+
+#[test]
 fn typst_align_without_param() {
     // 无对齐参数时解包渲染内容
     let src = ":::align\n内容\n:::";

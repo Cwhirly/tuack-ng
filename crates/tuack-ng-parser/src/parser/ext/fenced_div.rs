@@ -5,6 +5,7 @@
 //! 语义（kind + params）。
 
 use core::fmt;
+use std::borrow::Cow;
 use std::cell::RefCell;
 use std::rc::Rc;
 
@@ -14,7 +15,7 @@ use rushdown::parser::{
     ParserExtensionFn, State,
 };
 use rushdown::text::{self, BlockReader, EOS, Reader as _};
-use rushdown::util::{is_punct, is_space};
+use rushdown::util::{is_punct, is_space, resolve_entity_references, resolve_numeric_references};
 use rushdown::{
     Result,
     ast::{Arena, Attributes, KindData, NodeRef, NodeType, PrettyPrint},
@@ -205,7 +206,8 @@ fn parse_opening_fence(
 /// 解析 `{...}` 属性块。
 ///
 /// 在 rushdown `parse_attributes` 支持的 `#id`、`.class`、`key="value"`、`key=value`
-/// 之外，额外支持无值的裸参数（如 `:::align{right}` → `right=""`）。
+/// 之外，额外支持无值的裸参数（如 `:::align{right}`）。裸参数解析为
+/// `MultilineValue::Empty`，之后在 `fenced_div_to_container` 中转成 `ContainerParam::Flag`。
 fn parse_brace_attributes(reader: &mut BlockReader) -> Option<Attributes> {
     let (saved_line, saved_position) = reader.position();
     reader.skip_spaces();
@@ -290,17 +292,14 @@ fn parse_brace_attributes(reader: &mut BlockReader) -> Option<Attributes> {
 /// 解析单个属性值：`"quoted"`、`'quoted'` 或未加引号的 `unquoted`。
 fn parse_attr_value(reader: &mut BlockReader) -> Option<text::MultilineValue> {
     reader.skip_spaces();
-    match reader.peek_byte() {
+    let value = match reader.peek_byte() {
         b'"' | b'\'' => {
             let quote = reader.peek_byte();
             reader.advance(1);
             let (line, seg) = reader.peek_line_bytes()?;
-            if let Some(i) = line.iter().position(|&b| b == quote) {
-                reader.advance(i + 1);
-                Some(seg.with_stop(seg.start() + i).into())
-            } else {
-                None
-            }
+            let i = line.iter().position(|&b| b == quote)?;
+            reader.advance(i + 1);
+            seg.with_stop(seg.start() + i).into()
         }
         _ => {
             let (line, seg) = reader.peek_line_bytes()?;
@@ -322,8 +321,19 @@ fn parse_attr_value(reader: &mut BlockReader) -> Option<text::MultilineValue> {
                 return None;
             }
             reader.advance(i);
-            Some(seg.with_stop(seg.start() + i).into())
+            seg.with_stop(seg.start() + i).into()
         }
+    };
+    Some(resolve_attr_entities(value, reader.source()))
+}
+
+/// 解析属性值中的 HTML 实体与数字引用（`&amp;` → `&`、`&#35;` → `#` 等），
+/// 与 rushdown 内置 `parse_attributes` 的行为保持一致。
+fn resolve_attr_entities(value: text::MultilineValue, source: &str) -> text::MultilineValue {
+    let resolved = resolve_numeric_references(resolve_entity_references(value.bytes(source)));
+    match resolved {
+        Cow::Borrowed(_) => value,
+        Cow::Owned(s) => s.into(),
     }
 }
 
@@ -358,10 +368,8 @@ pub(crate) fn fenced_div_to_container(
         let val = v.str(source).into_owned();
         if k == "class" {
             kind = val;
-        } else if k == "id" {
-            params.push(crate::ast::ContainerParam::KeyValue("id".to_string(), val));
-        } else if val.is_empty() {
-            // 无值裸属性 → Flag。
+        } else if matches!(v, text::MultilineValue::Empty) {
+            // 无值裸属性 → Flag；`key=""` 解析为 Indices（非 Empty），仍保留为空值 KeyValue。
             params.push(crate::ast::ContainerParam::Flag(k.to_string()));
         } else {
             params.push(crate::ast::ContainerParam::KeyValue(k.to_string(), val));

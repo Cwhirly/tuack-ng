@@ -132,18 +132,21 @@ fn render_block(block: &BlockKind, footnotes: &HashMap<String, Vec<Block>>, out:
                 }
                 out.push(']');
             } else if c.kind == "align" {
-                // `:::align{right}` / `:::align{center}` / `:::align{left}` 对齐容器。
-                let align = c
-                    .params
-                    .iter()
-                    .find(|p| {
-                        matches!(
-                            p,
-                            ContainerParam::Flag(k)
-                                if k == "right" || k == "center" || k == "left"
-                        )
-                    })
-                    .map(ContainerParam::key);
+                // `:::align{right}` / `:::align{center}` / `:::align{left}` 对齐容器；
+                // 同时接受 `right=true` 等键值写法（值须为 "true"）。
+                let align = c.params.iter().find_map(|p| match p {
+                    ContainerParam::Flag(k)
+                        if matches!(k.as_str(), "left" | "center" | "right") =>
+                    {
+                        Some(k.clone())
+                    }
+                    ContainerParam::KeyValue(k, v)
+                        if matches!(k.as_str(), "left" | "center" | "right") && v == "true" =>
+                    {
+                        Some(k.clone())
+                    }
+                    _ => None,
+                });
                 match align {
                     Some(align) => {
                         out.push_str(&format!("#align({align})["));
