@@ -31,8 +31,8 @@ let typ = render_typst(&doc);
 
 | 类别        | 语法                               | 说明                                                         |
 | ----------- | ---------------------------------- | ------------------------------------------------------------ |
-| 段落 / 换行 | `a\nb`                             | 软换行 → SoftBreak；`a  \nb` / `a\\\nb` 硬换行 → LineBreak |
-| 标题        | `# H`、`H\n===`                    | ATX 1–6 级、Setext 1/2 级                                   |
+| 段落 / 换行 | `a\nb`                             | 软换行 → SoftBreak；`a  \nb` / `a\\\nb` 硬换行 → LineBreak   |
+| 标题        | `# H`、`H\n===`                    | ATX 1–6 级、Setext 1/2 级                                    |
 | 列表        | `- a` / `1. a`                     | 无序（`-`/`*`/`+`）、有序（渲染恒从 1 开始）、嵌套           |
 | 引用        | `> quote`                          | 支持嵌套                                                     |
 | 代码        | `` `code` ``、行间块               | 行内代码、围栏/缩进代码块                                    |
@@ -51,8 +51,8 @@ let typ = render_typst(&doc);
 | 语法                                                      | 说明                                           |
 | --------------------------------------------------------- | ---------------------------------------------- |
 | `:::note`                                                 | 普通容器，kind 取自 class                      |
-| `:::figure{caption="标题"}`                               | 图片容器；caption → Typst `#figure(caption:)` |
-| `:::align{right}` / `:::align{center}` / `:::align{left}` | 对齐容器；→ Typst `#align(...)`               |
+| `:::figure{caption="标题"}`                               | 图片容器；caption → Typst `#figure(caption:)`  |
+| `:::align{right}` / `:::align{center}` / `:::align{left}` | 对齐容器；→ Typst `#align(...)`                |
 | `:::a{key=val}`                                           | 键值对参数                                     |
 | `:::{aa, bb, b=c, c=d}`                                   | 混合列表：裸属性（Flag）+ 键值对（KeyValue）   |
 | 嵌套                                                      | 容器可任意嵌套                                 |
