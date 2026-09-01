@@ -1,13 +1,13 @@
 //! Markdown 渲染往返测试（移植自 markdown-ppp printer/tests）。
 //!
-//! 验证 parse → render_markdown 的一致性：解析后的 AST 渲染回 Markdown，
+//! 验证 parse -> render_markdown 的一致性：解析后的 AST 渲染回 Markdown，
 //! 再解析一次应得到相同结构（幂等性）。
 
 mod common;
 
 use tuack_ng_parser::printers::render_markdown;
 
-/// 解析 → 渲染 → 再解析，两次 AST 结构应一致（忽略 span）。
+/// 解析 -> 渲染 -> 再解析，两次 AST 结构应一致（忽略 span）。
 fn round_trip_is_idempotent(source: &str) {
     let doc1 = tuack_ng_parser::parse(source);
     let md = render_markdown(&doc1);

@@ -104,7 +104,7 @@ fn container_pandoc_style() {
 
 #[test]
 fn container_bare_param() {
-    // 无值裸参数 `:::align{right}` → Flag("right")。
+    // 无值裸参数 `:::align{right}` -> Flag("right")。
     for src in [
         ":::align{right}\n内容\n:::\n",
         ":::align {right}\n内容\n:::\n",

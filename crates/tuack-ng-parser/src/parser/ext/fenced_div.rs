@@ -168,7 +168,7 @@ fn parse_opening_fence(
     let mut attributes = if b == b'{' {
         parse_brace_attributes(reader)?
     } else {
-        // 无括号形式：`:::note` → 视为 class。
+        // 无括号形式：`:::note` -> 视为 class。
         let (line, seg) = reader.peek_line_bytes()?;
         let i = line
             .iter()
@@ -249,7 +249,7 @@ fn parse_brace_attributes(reader: &mut BlockReader) -> Option<Attributes> {
 
 /// 解析单个属性：`#id` / `.class` 简写、`key=value`，以及 tuack-ng 扩展的裸 `key`。
 ///
-/// 对应 rushdown `parse_attribute`；失败返回 `None`，位置回滚由调用方负责。
+/// 对应 rushdown `parse_attribute`。失败返回 `None`，不回滚 reader 位置。
 fn parse_one_attribute(reader: &mut BlockReader) -> Option<(String, text::MultilineValue)> {
     let (line, _seg) = reader.peek_line_bytes()?;
     if line.is_empty() {
@@ -257,7 +257,7 @@ fn parse_one_attribute(reader: &mut BlockReader) -> Option<(String, text::Multil
     }
     let first = line[0];
     if first == b'#' || first == b'.' {
-        // `#id` / `.class` 简写；与 rushdown 一致，允许空名（`{#}` → id=""、`{.}` → class=""）。
+        // `#id` / `.class` 简写；与 rushdown 一致，允许空名（`{#}` -> id=""、`{.}` -> class=""）。
         reader.advance(1);
         let (line, seg) = reader.peek_line_bytes()?;
         let i = line
@@ -337,7 +337,7 @@ fn parse_attr_value(reader: &mut BlockReader) -> Option<text::MultilineValue> {
     Some(resolve_attr_entities(value, reader.source()))
 }
 
-/// 解析属性值中的 HTML 实体与数字引用（`&amp;` → `&`、`&#35;` → `#` 等），
+/// 解析属性值中的 HTML 实体与数字引用（`&amp;` -> `&`、`&#35;` -> `#` 等），
 /// 与 rushdown 内置 `parse_attributes` 的行为保持一致。
 fn resolve_attr_entities(value: text::MultilineValue, source: &str) -> text::MultilineValue {
     let resolved = resolve_numeric_references(resolve_entity_references(value.bytes(source)));
@@ -379,7 +379,7 @@ pub(crate) fn fenced_div_to_container(
         if k == "class" {
             kind = val;
         } else if matches!(v, text::MultilineValue::Empty) {
-            // 无值裸属性 → Flag；`key=""` 解析为 Indices（非 Empty），仍保留为空值 KeyValue。
+            // 无值裸属性 -> Flag；`key=""` 解析为 Indices（非 Empty），仍保留为空值 KeyValue。
             params.push(crate::ast::ContainerParam::Flag(k.to_string()));
         } else {
             params.push(crate::ast::ContainerParam::KeyValue(k.to_string(), val));

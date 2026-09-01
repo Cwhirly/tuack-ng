@@ -28,7 +28,7 @@ pub fn render_typst(doc: &Document) -> String {
     out
 }
 
-/// 收集所有脚注定义：label → blocks（typst 引用点内联定义内容）。
+/// 收集所有脚注定义：label -> blocks（typst 引用点内联定义内容）。
 fn collect_footnotes(doc: &Document) -> HashMap<String, Vec<Block>> {
     let mut map = HashMap::new();
     for block in &doc.blocks {
@@ -198,7 +198,7 @@ fn render_inlines(inlines: &[Inline], footnotes: &HashMap<String, Vec<Block>>, o
     for inline in inlines {
         match &inline.value {
             InlineKind::Text(t) => pending.push_str(t),
-            // Markdown 软换行 → typst `#linebreak()`（保留换行）。
+            // Markdown 软换行 -> typst `#linebreak()`（保留换行）。
             InlineKind::SoftBreak => {
                 flush(&mut pending, out);
                 out.push_str("#linebreak()");
