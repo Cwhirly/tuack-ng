@@ -6,6 +6,7 @@ use crate::ast::block::{BlockKind, CodeBlockKind, ContainerParam, HeadingKind, S
 use crate::ast::inline::{InlineKind, LinkReferenceKind};
 use crate::ast::list::{ListBulletKind, ListKind};
 use crate::ast::{Document, Inline};
+use rushdown::util::{is_punct, is_space};
 
 /// 渲染为 Markdown 字符串。
 pub fn render_markdown(doc: &Document) -> String {
@@ -149,7 +150,15 @@ fn render_block(block: &BlockKind, out: &mut String, _indent: usize) {
         }
         BlockKind::Container(c) => {
             out.push_str(":::");
-            out.push_str(&c.kind);
+            if kind_is_safe(&c.kind) {
+                out.push_str(&c.kind);
+            } else {
+                // kind 含空格/为空/含特殊字符时裸输出会破坏 fence 行，
+                // 改用 class 属性形式输出（值经实体转义），保证再解析不炸。
+                out.push_str("{class=\"");
+                out.push_str(&escape_attr_value(&c.kind));
+                out.push_str("\"}");
+            }
             if !c.params.is_empty() {
                 // Flag 渲染为裸 `key`（如 `:::align{right}`），KeyValue 输出 `key="value"`。
                 let params = c
@@ -181,6 +190,17 @@ fn render_block(block: &BlockKind, out: &mut String, _indent: usize) {
         }
         BlockKind::Empty => {}
     }
+}
+
+/// 判断 kind 能否以裸 `:::kind` 形式输出。
+///
+/// 与解析端无括号路径（`parse_opening_fence`）的字符集一致：
+/// 非空，且每个字节非空格、非标点（`_`/`-`/`:`/`.` 除外）。
+fn kind_is_safe(kind: &str) -> bool {
+    !kind.is_empty()
+        && kind.bytes().all(|b| {
+            !is_space(b) && (!is_punct(b) || b == b'_' || b == b'-' || b == b':' || b == b'.')
+        })
 }
 
 /// 转义属性值中会破坏 fenced-div 语法的字符，保证 `key="value"` 往返幂等。

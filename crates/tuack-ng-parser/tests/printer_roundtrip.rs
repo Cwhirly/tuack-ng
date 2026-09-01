@@ -115,3 +115,13 @@ fn roundtrip_container_param_escaping() {
     round_trip_is_idempotent(":::figure{caption=\"x &amp; y\"}\ntext\n:::");
     round_trip_is_idempotent(":::figure{caption=\"a&#10;b\"}\ntext\n:::");
 }
+
+#[test]
+fn roundtrip_container_kind_escaping() {
+    // kind 含空格（多 class）、为空、含实体解码字符时，打印端应改用 class 属性形式，
+    // 保证再解析不炸。
+    round_trip_is_idempotent(":::{.a .b}\ntext\n:::");
+    round_trip_is_idempotent(":::{.}\ntext\n:::");
+    round_trip_is_idempotent(":::figure{class=\"a&amp;b\"}\ntext\n:::");
+    round_trip_is_idempotent(":::{.a .b, key=v}\ntext\n:::");
+}
