@@ -208,6 +208,9 @@ fn parse_opening_fence(
 /// 在 rushdown `parse_attributes` 支持的 `#id`、`.class`、`key="value"`、`key=value`
 /// 之外，额外支持无值的裸参数（如 `:::align{right}`）。裸参数解析为
 /// `MultilineValue::Empty`，之后在 `fenced_div_to_container` 中转成 `ContainerParam::Flag`。
+///
+/// 结构上与 rushdown `parse_attributes` 对齐：单属性解析失败时回滚 reader 位置再返回
+/// `None`，保证其为 `parse_attributes` 的超集（空 `#id`/`.class` 简写同样被接受）。
 fn parse_brace_attributes(reader: &mut BlockReader) -> Option<Attributes> {
     let (saved_line, saved_position) = reader.position();
     reader.skip_spaces();
@@ -223,57 +226,12 @@ fn parse_brace_attributes(reader: &mut BlockReader) -> Option<Attributes> {
             reader.advance(1);
             return Some(attrs);
         }
-        let (line, _seg) = reader.peek_line_bytes()?;
-        if line.is_empty() {
-            reader.set_position(saved_line, saved_position);
-            return None;
-        }
-        let first = line[0];
-        let (name, value) = if first == b'#' || first == b'.' {
-            // `#id` / `.class` 简写。
-            reader.advance(1);
-            let (line, seg) = reader.peek_line_bytes()?;
-            let i = line
-                .iter()
-                .take_while(|&&b| {
-                    !is_space(b)
-                        && (!is_punct(b) || b == b'_' || b == b'-' || b == b':' || b == b'.')
-                })
-                .count();
-            if i == 0 {
+        let (name, value) = match parse_one_attribute(reader) {
+            Some(pair) => pair,
+            None => {
+                // 与 rushdown 一致：失败回滚 reader 位置。
                 reader.set_position(saved_line, saved_position);
                 return None;
-            }
-            reader.advance(i);
-            let value = seg.with_stop(seg.start() + i).into();
-            let name = if first == b'#' { "id" } else { "class" };
-            (name.to_string(), value)
-        } else {
-            // `key=value` 或裸 `key`（空值）。
-            if !(first.is_ascii_alphabetic() || first == b'_' || first == b':') {
-                reader.set_position(saved_line, saved_position);
-                return None;
-            }
-            let i = line
-                .iter()
-                .take_while(|&&b| {
-                    b.is_ascii_alphabetic()
-                        || b.is_ascii_digit()
-                        || b == b'_'
-                        || b == b'-'
-                        || b == b':'
-                        || b == b'.'
-                })
-                .count();
-            let name = String::from_utf8_lossy(&line[..i]).into_owned();
-            reader.advance(i);
-            reader.skip_spaces();
-            if reader.peek_byte() == b'=' {
-                reader.advance(1);
-                let value = parse_attr_value(reader)?;
-                (name, value)
-            } else {
-                (name, text::MultilineValue::Empty)
             }
         };
         if name == "class" && attrs.contains_key("class") {
@@ -285,6 +243,58 @@ fn parse_brace_attributes(reader: &mut BlockReader) -> Option<Attributes> {
         reader.skip_spaces();
         if reader.peek_byte() == b',' {
             reader.advance(1);
+        }
+    }
+}
+
+/// 解析单个属性：`#id` / `.class` 简写、`key=value`，以及 tuack-ng 扩展的裸 `key`。
+///
+/// 对应 rushdown `parse_attribute`；失败返回 `None`，位置回滚由调用方负责。
+fn parse_one_attribute(reader: &mut BlockReader) -> Option<(String, text::MultilineValue)> {
+    let (line, _seg) = reader.peek_line_bytes()?;
+    if line.is_empty() {
+        return None;
+    }
+    let first = line[0];
+    if first == b'#' || first == b'.' {
+        // `#id` / `.class` 简写；与 rushdown 一致，允许空名（`{#}` → id=""、`{.}` → class=""）。
+        reader.advance(1);
+        let (line, seg) = reader.peek_line_bytes()?;
+        let i = line
+            .iter()
+            .take_while(|&&b| {
+                !is_space(b) && (!is_punct(b) || b == b'_' || b == b'-' || b == b':' || b == b'.')
+            })
+            .count();
+        reader.advance(i);
+        let value = seg.with_stop(seg.start() + i).into();
+        let name = if first == b'#' { "id" } else { "class" };
+        Some((name.to_string(), value))
+    } else {
+        // `key=value` 或裸 `key`（空值）。
+        if !(first.is_ascii_alphabetic() || first == b'_' || first == b':') {
+            return None;
+        }
+        let i = line
+            .iter()
+            .take_while(|&&b| {
+                b.is_ascii_alphabetic()
+                    || b.is_ascii_digit()
+                    || b == b'_'
+                    || b == b'-'
+                    || b == b':'
+                    || b == b'.'
+            })
+            .count();
+        let name = String::from_utf8_lossy(&line[..i]).into_owned();
+        reader.advance(i);
+        reader.skip_spaces();
+        if reader.peek_byte() == b'=' {
+            reader.advance(1);
+            let value = parse_attr_value(reader)?;
+            Some((name, value))
+        } else {
+            Some((name, text::MultilineValue::Empty))
         }
     }
 }

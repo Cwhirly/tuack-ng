@@ -179,3 +179,26 @@ fn container_entity_reference() {
         )]
     );
 }
+
+#[test]
+fn container_empty_id_and_class() {
+    // 与 rushdown parse_attributes 一致：`{#}` / `{.}` 接受空 id/class，不应退化。
+    let doc = tuack_ng_parser::parse(":::{#}\n内容\n:::\n");
+    let c = match &doc.blocks[0].value {
+        BlockKind::Container(c) => c,
+        other => panic!(":::# 应为 Container，实际 {other:?}"),
+    };
+    assert_eq!(c.kind, "");
+    assert_eq!(
+        c.params,
+        vec![ContainerParam::KeyValue("id".to_string(), String::new())]
+    );
+
+    let doc = tuack_ng_parser::parse(":::{.}\n内容\n:::\n");
+    let c = match &doc.blocks[0].value {
+        BlockKind::Container(c) => c,
+        other => panic!(":::. 应为 Container，实际 {other:?}"),
+    };
+    assert_eq!(c.kind, "");
+    assert!(c.params.is_empty(), ":::. 应无参数，实际 {:?}", c.params);
+}
