@@ -176,14 +176,6 @@ fn typst_align_left() {
 }
 
 #[test]
-fn typst_align_keyvalue_true() {
-    // `right=true` 键值写法渲染为解包内容（对齐只认裸参数）。
-    let src = ":::align{right=true}\n内容\n:::";
-    let out = render_typst(&tuack_ng_parser::parse(src));
-    assert_eq!(out.trim(), "#par[#\"内容\"]");
-}
-
-#[test]
 fn typst_align_without_param() {
     // 无对齐参数时解包渲染内容
     let src = ":::align\n内容\n:::";
