@@ -177,13 +177,10 @@ fn typst_align_left() {
 
 #[test]
 fn typst_align_keyvalue_true() {
-    // `right=true` 键值写法应与裸 `right` 等价。
+    // `right=true` 键值写法不被接受：不输出 #align，解包渲染内容。
     let src = ":::align{right=true}\n内容\n:::";
     let out = render_typst(&tuack_ng_parser::parse(src));
-    assert!(
-        out.contains("#align(right)[#par[#\"内容\"]]"),
-        "应输出 #align(right)[...]，实际：{out:?}"
-    );
+    assert_eq!(out.trim(), "#par[#\"内容\"]");
 }
 
 #[test]
