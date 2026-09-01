@@ -132,8 +132,7 @@ fn render_block(block: &BlockKind, footnotes: &HashMap<String, Vec<Block>>, out:
                 }
                 out.push(']');
             } else if c.kind == "align" {
-                // `:::align{right}` / `:::align{center}` / `:::align{left}` 对齐容器；
-                // 只认裸参数，`right=true` 等键值写法不生效（解包渲染）。
+                // `:::align{right}` / `:::align{center}` / `:::align{left}` 对齐容器（裸参数）。
                 let align = c.params.iter().find_map(|p| match p {
                     ContainerParam::Flag(k)
                         if matches!(k.as_str(), "left" | "center" | "right") =>
